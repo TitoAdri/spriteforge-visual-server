@@ -1,0 +1,14 @@
+.perspective-picker { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; }
+.perspective-card { min-height:128px; position:relative; overflow:hidden; display:flex; flex-direction:column; align-items:flex-start; justify-content:flex-end; gap:2px; padding:11px; border:1px solid #dbbfac28; border-radius:10px; background:#19100a; color:#fef1e8; text-align:left; }
+.perspective-card img { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; opacity:.32; image-rendering:pixelated; filter:saturate(.75); }
+.perspective-card::after { content:""; position:absolute; inset:0; background:linear-gradient(0deg,#180f09 0%,#180f0966 56%,transparent); }
+.perspective-card b,.perspective-card small { position:relative; z-index:1; }
+.perspective-card b { font-size:12px; }
+.perspective-card small { color:#ccb6a7; font-size:10px; line-height:1.2; }
+.perspective-card:hover,.perspective-card.active { border-color:#34d399aa; background:#0a2824; box-shadow:inset 0 0 0 1px #34d39933; }
+.perspective-card.active::before { content:"Selected"; position:absolute; z-index:2; top:8px; right:8px; padding:3px 5px; border-radius:999px; background:#34d399; color:#06231c; font-size:8px; font-weight:900; text-transform:uppercase; }
+.style-tag-picker { display:flex; flex-wrap:wrap; gap:7px; }
+.style-tag { padding:7px 9px; border:1px solid #916d5577; border-radius:999px; background:#1f140c; color:#dacabf; font-size:11px; line-height:1; }
+.style-tag:hover,.style-tag.active { border-color:#f2b287; background:#ea9d6a2e; color:#feede3; }
+.creator-theme-card{display:flex;align-items:stretch;padding:7px;border:1px solid #594335;border-radius:10px;background:linear-gradient(145deg,#271d17,#1c1510);transition:.18s}.creator-theme-card b{display:block;color:#f9f3f0;font-size:13px}.creator-theme-card small{display:block;margin-top:3px;color:#c0a694;font-size:10px}.creator-theme-card button{border:1px solid #6c513f;border-radius:7px;background:#31251d;color:#f1e7e0;padding:8px 9px;font-size:10px;font-weight:800;cursor:pointer}.creator-theme-card button:hover{border-color:#e8ad85;color:#fff}.creator-theme-select{min-width:0;flex:1;display:flex;align-items:center;justify-content:space-between;gap:9px;text-align:left}.creator-theme-select span{min-width:0}.creator-theme-select em{font-style:normal;color:#f1c5a8;white-space:nowrap}
+@media(max-width:480px){.perspective-picker{gap:6px}.perspective-card{min-height:105px;padding:8px}.perspective-card small{display:none}}

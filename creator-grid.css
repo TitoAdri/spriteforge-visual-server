@@ -1,0 +1,33 @@
+.creator-tools {
+  margin-top: 16px;
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  padding: 12px 0;
+}
+
+.creator-tool-row {
+  display: flex;
+  gap: 13px;
+  align-items: flex-start;
+  padding: 5px 0;
+}
+
+.creator-tool-row > span {
+  width: 48px;
+  padding-top: 6px;
+  color: #b59681;
+  font-size: 12px;
+}
+
+.creator-tool-row > div {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.creator-tools .chip { cursor: pointer; }
+
+@media (max-width: 480px) {
+  .creator-tool-row { gap: 8px; }
+  .creator-tool-row > span { width: 42px; }
+}

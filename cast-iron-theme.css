@@ -1,0 +1,214 @@
+/* SpriteForge — cast iron palette. Loaded last so the whole product shares one warm visual system. */
+:root{
+  --bg:#101114;
+  --card:#191b20;
+  --muted:#b5aa9d;
+  --indigo:#d36b2c;
+  --border:rgba(238,157,85,.2);
+  --studio-bg:#101114;
+  --studio-panel:#1a1c22;
+  --studio-panel-soft:#121419;
+  --studio-line:#393d45;
+  --studio-text:#fff4ea;
+  --studio-muted:#bea38d;
+  --studio-purple:#d66a2d;
+}
+
+html,body{background:#101114;color:#fff4ea}
+body{background:#101114}
+a{color:#ee9b55}
+
+/* Marketing surface */
+.nav,.navbar,.site-nav{border-color:#4b3528!important;background:linear-gradient(180deg,#1c120cdd,#120d09dd)!important}
+.brand img,.studio-logo img{object-fit:contain;image-rendering:pixelated}
+.brand img{width:32px!important;height:32px!important}
+.button,.btn,.nav-cta,.cta,.hero-cta,.download-btn,.primary-btn{
+  background:linear-gradient(135deg,#b94d1f,#e98e45)!important;
+  border-color:#f0a05c!important;
+  color:#fffaf5!important;
+  box-shadow:0 10px 25px #6d301d55!important;
+}
+.button:hover,.btn:hover,.nav-cta:hover,.cta:hover,.hero-cta:hover,.download-btn:hover,.primary-btn:hover{filter:brightness(1.08)}
+.hero,.hero-card,.feature-card,.tool-card,.panel,.card{border-color:#543827!important}
+
+/* Application shell */
+.studio-shell{background:var(--studio-bg)!important}
+.studio-main{background:#121419!important}
+.studio-sidebar{background:#111216!important;border-color:var(--studio-line)!important}
+.studio-logo{font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif!important;font-weight:850!important;color:#fff4ea!important}
+.studio-logo img{width:30px!important;height:30px!important}
+.studio-primary button:hover,.studio-primary button.is-active{background:#3a2519!important;color:#fff7f0!important}
+.studio-primary button.is-active .studio-icon,.studio-kicker,.studio-tool-launcher button>span,.studio-section-title>button{color:#ee9852!important}
+.studio-sidebar-rule{background:#4b3528!important}
+.studio-user{background:#261811!important;border-color:#60432e!important;color:#ffe9d5!important}
+.studio-user>span{background:linear-gradient(135deg,#e48742,#9d3e1c)!important}
+
+/* Panels and cards */
+.studio-composer,.studio-library-layout,.studio-theme-workbench,.studio-dialog{
+  border-color:#3a3f48!important;
+  background:#1a1c22!important;
+}
+.studio-tool-launcher button,.studio-asset-card,.studio-project-card,.studio-preset-card{
+  border-color:#383c45!important;
+  background:#1a1c22!important;
+}
+.studio-tool-launcher button:hover,.studio-asset-card:hover,.studio-project-card:hover,.studio-preset-card:hover{
+  border-color:#dd7a37!important;
+  background:#23262d!important;
+}
+.studio-theme-banner{background:#202329!important;border-color:#5a493d!important}
+.studio-theme-banner button{color:#f2a562!important}
+.studio-theme-list button.active,.studio-library-nav button.active,.studio-library-nav button:hover{background:#3b261a!important}
+
+/* Form controls and selectable chips */
+.studio-shell textarea,.studio-shell input,.studio-shell select,.studio-library-toolbar label,.studio-preset-controls label,.studio-reference-grid button{
+  background:#120d09!important;border-color:#573b2b!important;color:#fff2e6!important;
+}
+.studio-shell textarea:focus,.studio-shell input:focus,.studio-shell select:focus{
+  border-color:#e58844!important;box-shadow:0 0 0 3px #d96b2c2e!important;
+}
+.style-tag.active,.tag.active,.studio-reference-grid button.selected,.creator-tag.active,.asset-tag.active,.tileset-tag.active{
+  background:#67351e!important;border-color:#ee9852!important;color:#fff3e8!important;
+}
+.studio-filter-row button.active,.studio-preset-controls>div button.active,.studio-preset-filters button.active{background:#56301f!important;color:#fff4ea!important}
+
+/* Primary actions across all generators. */
+.studio-upload,.studio-create,.creator-generate,.asset-generate,.pack-create,.tileset-create,.animation-create,.animation3-submit,.a4-submit,.a4-assist-generate,.a4-prompt-assist,.studio-confirm-references,.studio-apply-preset{
+  border-color:#ef9d5a!important;
+  background:linear-gradient(135deg,#ad461c,#e68b43)!important;
+  color:#fffaf5!important;
+  box-shadow:0 9px 23px #71321c55!important;
+}
+.a4-prompt-assist,.a4-assistant-card{background:linear-gradient(135deg,#3a2116,#25140e)!important;border-color:#92512e!important;color:#ffd9ba!important}
+.a4-assist-generate{background:linear-gradient(135deg,#a84018,#dd7837)!important}
+
+/* Empty canvases and generated-art stages retain contrast, now with warm depth. */
+.creator-stage,.asset-stage,.pack-stage,.tileset-stage,.animation-stage,.animation3-stage,.a4-stage,.studio-thumb,.studio-theme-art{
+  background-color:#120e0b!important;
+}
+.creator-stage,.asset-stage,.pack-stage,.tileset-stage,.animation-stage,.animation3-stage,.a4-stage{
+  background-image:radial-gradient(circle at 50% 40%,#5c321f3d 0,transparent 49%)!important;
+}
+
+/* Neutral checkerboard keeps transparency legible without the old blue cast. */
+.checker{
+  background-color:#17100c!important;
+  background-image:linear-gradient(45deg,#2a1b13 25%,transparent 25%),linear-gradient(-45deg,#2a1b13 25%,transparent 25%),linear-gradient(45deg,transparent 75%,#2a1b13 75%),linear-gradient(-45deg,transparent 75%,#2a1b13 75%)!important;
+}
+
+/* Consistent warm custom scrollbars. */
+*{scrollbar-color:#c8662e #17100c}
+*::-webkit-scrollbar{width:10px;height:10px}
+*::-webkit-scrollbar-track{background:#17100c}
+*::-webkit-scrollbar-thumb{background:linear-gradient(#d97b3b,#9c421d);border:2px solid #17100c;border-radius:999px}
+*::-webkit-scrollbar-thumb:hover{background:#ef9b55}
+
+/* Surface rule: charcoal and steel are the only large-area backgrounds.
+   Copper is deliberately reserved for actions, focus and selected states. */
+.creator-page,.creator-page-embedded,.asset-page,.asset-page-embedded,.studio-character-view,
+.studio-asset-generator-view,.studio-asset-pack-view,.studio-tileset-view,.studio-animation-view,
+.studio-animation2-view,.studio-animation3-view,.studio-animation4-view,.a4-view{background:#121419!important}
+.creator-shell,.asset-shell,.pack-builder,.tileset-builder,.animation-builder,.animation2-shell,.animation3-shell,.a4-shell{
+  background:#1a1c22!important;
+  border-color:#393e47!important;
+}
+.creator-controls,.asset-controls,.pack-controls,.tileset-controls,.animation-controls,.animation2-controls,.animation3-controls,.a4-panel{
+  background:#1b1d23!important;
+  border-color:#393e47!important;
+}
+.creator-stage,.asset-stage,.pack-stage,.tileset-stage,.animation-stage,.animation2-stage,.animation3-stage,.a4-stage{
+  background:#121419!important;
+  background-image:radial-gradient(circle at 50% 38%,#252a32 0,transparent 52%)!important;
+  border-color:#393e47!important;
+}
+.a4-live,.a4-results article,.a4-empty,.animation-clip,.animation-preview,.animation-result,.animation2-canvas,.animation3-canvas{
+  background:#1a1c22!important;
+  border-color:#414751!important;
+}
+.creator-field textarea,.creator-field input,.creator-field select,.asset-field textarea,.asset-field input,.asset-field select,
+.pack-field textarea,.pack-field input,.pack-field select,.tileset-field textarea,.tileset-field input,.tileset-field select,
+.animation-field textarea,.animation-field input,.animation-field select,.a4-panel textarea,.a4-panel input,.a4-panel select{
+  background:#101216!important;
+  border-color:#414751!important;
+}
+.a4-motions button,.creator-choice,.asset-mode,.pack-mode,.tileset-mode,.animation-motion,.animation2-template,.animation3-motion{
+  background:#181a20!important;
+  border-color:#3d424c!important;
+}
+.a4-motions button.active,.creator-choice.active,.asset-mode.active,.pack-mode.active,.tileset-mode.active,.animation-motion.active,.animation2-template.active,.animation3-motion.active{
+  background:#3a2a20!important;
+  border-color:#df823f!important;
+}
+
+/* Tileset Builder is a neutral workbench: no copper-tinted canvas or panels. */
+.tileset-builder,.tileset-form,.tileset-library,.tileset-card,.tileset-empty,.tileset-preview{
+  background:#1a1c22!important;
+  border-color:#3d424b!important;
+}
+.tileset-library{background:#121419!important}
+.tileset-form input,.tileset-form select,.tileset-tags button,.tileset-tile-row button,#tileset-add,.tileset-card-tile img,.tileset-card-tile>span,.tileset-preview canvas{
+  background:#101216!important;
+  border-color:#414650!important;
+}
+.tileset-card header,.tileset-card footer{border-color:#3a3f48!important}
+.tileset-card footer button{background:#2b2f37!important;border:1px solid #464c56!important}
+
+/* The compact Home composer is one continuous metal surface, not a dark input nested in a card. */
+.studio-home-view .studio-composer{background:#1a1c22!important;border-color:#3c414a!important}
+.studio-home-view #studio-prompt{background:transparent!important;color:#fff4ea!important}
+.studio-home-view #studio-prompt::placeholder{color:#a9a29a!important;opacity:1}
+.studio-home-view .studio-type-select{display:inline-flex;align-items:center;gap:7px;color:#fff4ea!important;background:transparent!important;color-scheme:dark}
+.studio-home-view .studio-type-select b{color:#fff4ea!important}
+
+/* Home composer generator routing. Keep the native menu accessible while matching the cast-iron controls. */
+.studio-generator-select{position:relative;display:inline-flex;align-items:center;min-width:132px}
+.studio-home-view .studio-generator-select .studio-type-select{width:100%;padding:8px 4px!important;border:0!important;border-radius:7px!important;cursor:pointer;font:700 12px Inter,ui-sans-serif,system-ui,sans-serif!important;outline:0}
+.studio-home-view .studio-generator-select .studio-type-select option{background:#181a1f;color:#fff4ea}
+.studio-home-view .studio-create{display:inline-flex!important;align-items:center;white-space:nowrap}
+
+/* Marketing artwork always remains inside its intended card. */
+.feature-grid article,.gallery div{overflow:hidden}
+.character>img{width:min(56%,330px);height:88%;max-height:540px;object-fit:contain;object-position:right bottom}
+.animation-card img{width:min(62%,280px);height:88%;object-fit:contain;object-position:right bottom}
+.tile-assets img{max-height:130px}
+.gallery img{display:block;width:100%;height:100%;max-width:none;max-height:none;object-fit:contain}
+
+/* Completed PixelEngine outputs shown in the animation workbench. */
+.a4-results{display:grid;gap:12px;margin-top:16px}
+.a4-results article{display:flex;align-items:center;gap:13px;min-height:96px}
+.a4-result-preview{width:92px;height:70px;object-fit:contain;image-rendering:pixelated;border-radius:7px}
+.a4-results article>div{display:grid;gap:5px}
+.a4-results article a{color:#e28a47;font-weight:800;text-decoration:none}
+
+/* Asset viewer actions and real integer zoom controls. */
+.studio-asset-dialog-actions .studio-asset-download{display:inline-flex;align-items:center;text-decoration:none;background:#2b2f37;border:1px solid #464c56;color:#fff4ea;border-radius:7px;padding:8px 10px;font-size:12px;font-weight:800}
+.studio-download-menu{position:relative}
+.studio-download-menu summary{list-style:none;display:inline-flex;align-items:center;min-height:34px;box-sizing:border-box;background:#2b2f37;border:1px solid #464c56;color:#fff4ea;border-radius:7px;padding:0 10px;font-size:12px;font-weight:800;cursor:pointer}
+.studio-download-menu summary::-webkit-details-marker{display:none}
+.studio-download-menu[open] summary{border-color:#e28a47}
+.studio-download-menu>div{position:absolute;right:0;top:calc(100% + 7px);z-index:5;display:grid;min-width:156px;padding:6px;border:1px solid #464c56;border-radius:8px;background:#20232a;box-shadow:0 12px 30px #0008}
+.studio-download-menu a{padding:8px 9px;border-radius:5px;color:#fff4ea;text-decoration:none;font-size:12px;font-weight:700;white-space:nowrap}
+.studio-download-menu a:hover{background:#343944;color:#f3a55e}
+.studio-viewer-toolbar{position:relative;z-index:10;overflow:visible}
+.studio-viewer-toolbar .studio-download-menu{position:relative;z-index:20}
+.studio-viewer-toolbar .studio-download-menu>div{top:auto!important;bottom:calc(100% + 8px)!important;z-index:30!important}
+.studio-viewer-toolbar .studio-download-menu summary::marker{content:""}
+.studio-zoom{display:flex;align-items:center;gap:8px}
+.studio-zoom button{width:28px;height:28px;display:grid;place-items:center;border:1px solid #4a505b;background:#252932;color:#fff4ea;border-radius:6px;font-weight:800;cursor:pointer}
+.studio-zoom button:hover{border-color:#e28a47;color:#f3a55e}
+.studio-asset-preview>img{transform-origin:center;transition:transform .15s ease}
+
+/* Full-screen asset viewer: keep its inspector usable at every desktop width. */
+.studio-asset-dialog{background:#17191e!important;color:#fff4ea!important}
+.studio-asset-dialog>header{height:64px!important;padding:0 20px!important;background:#1b1d23!important;border-color:#373c45!important}
+.studio-asset-dialog-actions{display:flex;align-items:center;gap:8px}
+.studio-asset-dialog-actions>button:not(.studio-viewer-animate){width:34px;height:34px;display:grid;place-items:center;border:1px solid #464c56!important;border-radius:7px!important;background:#2b2f37!important;color:#fff4ea!important;font-size:18px;cursor:pointer}
+.studio-asset-dialog-actions>button:not(.studio-viewer-animate):hover{border-color:#e28a47!important;color:#f3a55e!important}
+.studio-asset-detail{height:calc(100vh - 64px)!important;grid-template-columns:minmax(0,1fr) minmax(350px,390px)!important}
+.studio-asset-preview{min-width:0;overflow:hidden!important;padding:28px!important;background-color:#121419!important}
+.studio-asset-preview>img{max-width:72%!important;max-height:74vh!important;image-rendering:pixelated}
+.studio-asset-detail aside{min-width:350px;box-sizing:border-box;padding:25px 21px!important;background:#1a1c22!important;border-color:#373c45!important;overflow-y:auto}
+.studio-asset-detail h2{overflow-wrap:anywhere;line-height:1.32!important;font-size:16px!important}
+.studio-detail-meta{color:#aaa39d!important;line-height:1.45}
+.studio-action-group{border-color:#373c45!important}
+.studio-action-group button{color:#fff4ea!important}

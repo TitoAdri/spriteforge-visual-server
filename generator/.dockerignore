@@ -1,0 +1,9 @@
+.env
+.env.*
+data
+*.db
+*.sqlite
+*.sqlite3
+*backup*
+evals/results
+test
