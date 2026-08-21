@@ -32,6 +32,31 @@ spriteforge-visual (Nginx, frontend estático)
 - **Persistencia:** volumen `generator/data:/data`. No borrar: contiene base SQLite y archivos de usuarios.
 - **Modelo público actual:** GPT Image (`gpt-image-2`). La API fuerza OpenAI aunque el cliente intente enviar otro proveedor.
 
+### GitHub y flujo de trabajo
+
+El repositorio privado oficial es [`TitoAdri/spriteforge-visual-server`](https://github.com/TitoAdri/spriteforge-visual-server). La carpeta local del proyecto es la fuente de código; el servidor mantiene aparte sus secretos y sus datos de producción.
+
+Para trabajar desde otra máquina con acceso al repositorio:
+
+```powershell
+git clone https://github.com/TitoAdri/spriteforge-visual-server.git
+cd spriteforge-visual-server
+Copy-Item generator/.env.example generator/.env
+# Completar generator/.env con las claves reales del entorno
+docker compose up -d --build
+```
+
+Flujo habitual para publicar cambios:
+
+```powershell
+git status
+git add -A
+git commit -m "Describe el cambio"
+git push origin main
+```
+
+No subir nunca `generator/.env`, `generator/data/`, bases SQLite, backups ni resultados generados. El repositorio los excluye mediante `.gitignore`. Para desplegar producción hay que conservar el `generator/.env` y el volumen `/opt/spriteforge-visual/generator/data` del servidor; un `git pull` no debe sobrescribirlos.
+
 ## Arranque local y despliegue
 
 ### Requisitos
