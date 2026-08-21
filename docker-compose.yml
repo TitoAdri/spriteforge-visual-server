@@ -1,0 +1,38 @@
+services:
+  spriteforge-visual:
+    build: .
+    container_name: spriteforge-visual
+    restart: unless-stopped
+    networks:
+      - default
+      - coolify
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=coolify"
+      - "traefik.http.services.spriteforge.loadbalancer.server.port=80"
+      - "traefik.http.routers.spriteforge.rule=Host(`spriteforge.xyz`) || Host(`www.spriteforge.xyz`)"
+      - "traefik.http.routers.spriteforge.entrypoints=https"
+      - "traefik.http.routers.spriteforge.tls=true"
+      - "traefik.http.routers.spriteforge.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.spriteforge.service=spriteforge"
+      - "traefik.http.routers.spriteforge-http.rule=Host(`spriteforge.xyz`) || Host(`www.spriteforge.xyz`)"
+      - "traefik.http.routers.spriteforge-http.entrypoints=http"
+      - "traefik.http.routers.spriteforge-http.middlewares=spriteforge-https"
+      - "traefik.http.routers.spriteforge-http.service=spriteforge"
+      - "traefik.http.middlewares.spriteforge-https.redirectscheme.scheme=https"
+    depends_on:
+      - generator-api
+  generator-api:
+    build: ./generator
+    container_name: spriteforge-generator-api
+    restart: unless-stopped
+    env_file:
+      - ./generator/.env
+    expose:
+      - "3002"
+    volumes:
+      - ./generator/data:/data
+
+networks:
+  coolify:
+    external: true

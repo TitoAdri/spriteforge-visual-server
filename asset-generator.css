@@ -1,0 +1,91 @@
+.asset-page{min-height:100vh;padding:145px 22px 95px;background:radial-gradient(95% 80% at 50% 0,#433226 0%,#1f140c 62%)}
+.asset-page-embedded{min-height:0;padding:0;background:none}
+.asset-intro{text-align:center;max-width:760px;margin:0 auto 38px}
+.asset-page-embedded .asset-intro{display:none}
+.asset-intro>span{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:#f8c9a9;font-weight:800}
+.asset-intro h1{font-size:clamp(39px,5.5vw,62px);line-height:1.08;letter-spacing:-.055em;margin:16px 0}
+.asset-intro h1 em{font-style:normal;color:#fac4a0}
+.asset-intro p{color:var(--muted);font-size:16px;line-height:1.6}
+.asset-shell{width:min(1240px,100%);margin:auto;display:grid;grid-template-columns:435px minmax(0,1fr);border:1px solid var(--border);border-radius:20px;overflow:hidden;background:#2a1b11;box-shadow:0 28px 80px #0008}
+.asset-controls{padding:25px;border-right:1px solid var(--border);background:linear-gradient(160deg,#352317,#26180f)}
+.asset-field{display:grid;gap:7px;margin-bottom:15px}
+.asset-field>span,.asset-theme-summary>span{font-size:11px;text-transform:uppercase;letter-spacing:.11em;color:#d0bdb0;font-weight:800}
+.asset-field small{font-size:11px;color:#ae8b74;line-height:1.4}
+.asset-field textarea,.asset-field input,.asset-field select{width:100%;box-sizing:border-box;border:1px solid #dbbfac27;border-radius:9px;background:#180f09;color:#fef4ed;padding:10px 11px;font:inherit;outline:none}
+.asset-field textarea:focus,.asset-field input:focus,.asset-field select:focus{border-color:#f2b287;box-shadow:0 0 0 3px #f2b28722}
+.asset-field textarea{min-height:94px;resize:vertical;line-height:1.45}
+.asset-theme-summary{display:grid;gap:4px;margin-bottom:16px;padding:12px;border:1px solid #4acda56b;border-radius:10px;background:linear-gradient(135deg,#173a34,#2f2118)}
+.asset-theme-summary b{color:#e7fff7;font-size:13px}
+.asset-theme-summary small{color:#a6c9bf;font-size:10px}
+.asset-theme-summary.is-empty{border-color:#5b4536;background:#271d17}
+.asset-theme-summary.is-empty b{color:#f2eae4}
+.asset-theme-summary.is-empty small{color:#c3aa9a}
+.asset-mode-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:7px}
+.asset-mode{min-height:103px;position:relative;overflow:hidden;border:1px solid #604838;border-radius:9px;background:#261911;color:#f8efe9;text-align:left;padding:8px;cursor:pointer;display:flex;flex-direction:column;justify-content:flex-end;gap:2px}
+.asset-mode img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:.28;image-rendering:pixelated}
+.asset-mode:after{content:"";position:absolute;inset:0;background:linear-gradient(0deg,#1f140d 0%,#1f140d55 63%,transparent)}
+.asset-mode b,.asset-mode small{position:relative;z-index:1}
+.asset-mode b{font-size:10px}
+.asset-mode small{font-size:8px;color:#d2beb0;line-height:1.15}
+.asset-mode:hover,.asset-mode.active{border-color:#4fdbb4;background:#12332f;box-shadow:inset 0 0 0 1px #4fdbb433}
+.asset-mode.active:before{content:"Selected";position:absolute;z-index:2;right:6px;top:6px;border-radius:999px;background:#40d4a8;color:#08261f;padding:3px 4px;font-size:7px;font-weight:900;text-transform:uppercase}
+.asset-tag-picker{display:flex;flex-wrap:wrap;gap:6px}
+.asset-tag{border:1px solid #916d5577;border-radius:999px;background:#1f140c;color:#dacabf;padding:6px 8px;font-size:10px;line-height:1;cursor:pointer}
+.asset-tag:hover,.asset-tag.active{border-color:#f2b287;background:#ea9d6a2e;color:#feede3}
+.asset-generate{width:100%;margin-top:2px;padding:13px 16px;border:0;border-radius:10px;background:linear-gradient(135deg,#ea9d6a,#f1b48b);color:#fff;font-weight:800;box-shadow:0 8px 25px #dd874e40}
+.asset-generate b{font-size:17px;margin-left:7px}
+.asset-local-note{margin:13px 1px 0;color:#ae8b74;font-size:11px;line-height:1.45}
+.asset-stage{position:relative;min-height:700px;padding:27px;display:grid;place-items:center;background:radial-gradient(circle at 50% 40%,#432c1c,#20150d 67%)}
+.asset-empty,.asset-loading{text-align:center;max-width:345px}
+.asset-empty>div{width:72px;height:72px;margin:0 auto 18px;border:1px solid #f9bb914d;border-radius:20px;display:grid;place-items:center;font-size:31px;color:#f8c9a9;background:#51372652}
+.asset-empty h2,.asset-loading h2{margin:0 0 8px;font-size:24px}
+.asset-empty p,.asset-loading p{color:var(--muted);line-height:1.5}
+.asset-loading>div{width:64px;height:64px;margin:0 auto 22px;border:4px solid #8c6952;border-top-color:#f8c9a9;border-radius:50%;animation:asset-spin 1s linear infinite}
+@keyframes asset-spin{to{transform:rotate(360deg)}
+}
+.asset-error{max-width:390px;padding:15px 17px;border:1px solid #fb718555;border-radius:11px;background:#4c152333;color:#fecdd3;line-height:1.5;text-align:center}
+.asset-result{width:100%;align-self:stretch;display:flex;flex-direction:column}
+.asset-result-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px}
+.asset-result-head span{color:#fac4a0;font-size:10px;font-weight:800;letter-spacing:.13em}
+.asset-result-head h2{margin:6px 0 0;font-size:25px;letter-spacing:-.035em}
+.asset-result-head button{padding:8px 10px;border:1px solid var(--border);border-radius:8px;background:#3e2b1e;color:#e4d4c9;font-size:12px}
+.asset-compare{flex:1;display:grid;grid-template-columns:1fr 1fr;gap:16px;min-height:0}
+.asset-compare figure{display:flex;flex-direction:column;gap:9px;min-width:0;margin:0}
+.asset-compare figcaption{text-transform:uppercase;letter-spacing:.1em;color:#bfa593;font-weight:800;font-size:10px}
+.asset-compare figcaption small{display:block;margin-top:4px;color:#98735a;letter-spacing:0;text-transform:none;font-size:11px;font-weight:500}
+.asset-compare canvas{width:100%;flex:1;min-height:405px;max-height:510px;object-fit:contain;border:1px solid var(--border);border-radius:12px;background:#150e09;image-rendering:pixelated}
+.asset-compare figure:nth-child(2) canvas{background-color:#1f130b;background-image:linear-gradient(45deg,#352419 25%,transparent 25%),linear-gradient(-45deg,#352419 25%,transparent 25%),linear-gradient(45deg,transparent 75%,#352419 75%),linear-gradient(-45deg,transparent 75%,#352419 75%);background-size:16px 16px;background-position:0 0,0 8px,8px -8px,-8px 0}
+.asset-tools{margin-top:17px;display:grid;gap:8px}
+.asset-tools>div{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.asset-tools>div>span{width:48px;color:#c2a896;font-size:11px}
+.asset-chip{border:1px solid #604939;border-radius:6px;background:#342419;color:#e3cbbb;padding:5px 7px;font-size:10px;cursor:pointer}
+.asset-chip.active{border-color:#e9a77b;background:#976b4e;color:#fff}
+.asset-result footer{display:flex;align-items:center;justify-content:space-between;margin-top:17px;color:#bea391;font-size:12px}
+.asset-result footer button{padding:10px 14px;border:0;border-radius:9px;background:#ea9d6a;color:#fff;font-weight:800}
+@media(max-width:920px){.asset-shell{grid-template-columns:1fr}
+.asset-controls{border-right:0;border-bottom:1px solid var(--border)}
+.asset-stage{min-height:570px}
+}
+@media(max-width:520px){.asset-page{padding:105px 14px 45px}
+.asset-controls,.asset-stage{padding:18px}
+.asset-mode-grid{grid-template-columns:repeat(2,1fr)}
+.asset-compare{gap:9px}
+.asset-compare canvas{min-height:220px}
+.asset-result-head{align-items:flex-start}
+.asset-result-head button{white-space:nowrap}
+.asset-result footer{gap:10px}
+.asset-result footer span{max-width:55%}
+}
+
+/* Keep both result canvases in the grid even when this tool is embedded in /app. */
+.asset-result{min-width:0}
+.asset-result .asset-compare{width:100%;display:grid!important;grid-template-columns:minmax(0,1fr) minmax(0,1fr)!important}
+.asset-result .asset-compare>figure{display:flex!important;min-width:0;width:auto!important;grid-column:auto!important}
+.asset-result .asset-compare>figure>canvas{display:block;box-sizing:border-box;min-width:0}
+.asset-result footer{position:static;overflow:visible;width:100%;min-height:0;padding:0;background:transparent}
+@media(max-width:520px){
+  .asset-result .asset-compare{gap:9px}
+  .asset-result .asset-compare>figure>canvas{min-height:220px}
+}
+/* The generation stack is deliberately fixed to one tuned model. */
+.asset-controls label:has(#asset-provider){display:none}

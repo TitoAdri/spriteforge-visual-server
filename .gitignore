@@ -1,0 +1,13 @@
+# Runtime secrets and production state
+generator/.env
+generator/data/
+*.db
+*.db-*
+
+# Generated evaluation output and local dependencies
+generator/evals/results/
+node_modules/
+
+# Local/editor noise
+.DS_Store
+Thumbs.db
