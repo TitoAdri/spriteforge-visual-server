@@ -163,6 +163,12 @@
     if (pskl.service.performance?.PerformanceReport) {
       pskl.service.performance.PerformanceReport.prototype.hasProblem = function () { return false; };
     }
+    // Piskel paints the unused area of its display canvas with this legacy grey
+    // value, so CSS alone cannot restyle it. Keep the workspace surface aligned
+    // with the SpriteForge palette whenever the renderer zooms the sprite out.
+    if (typeof Constants !== "undefined") {
+      Constants.ZOOMED_OUT_BACKGROUND_COLOR = "#151b22";
+    }
     var performanceLink = document.querySelector(".performance-link");
     if (performanceLink) performanceLink.remove();
     restyleCanvasSurface();
