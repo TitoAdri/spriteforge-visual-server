@@ -143,6 +143,12 @@
   window.addEventListener("message", onMessage);
   window.piskelReadyCallbacks = window.piskelReadyCallbacks || [];
   window.piskelReadyCallbacks.push(function () {
+    // The packaged stylesheet is loaded asynchronously by Piskel. Load our
+    // product theme last so legacy defaults cannot reintroduce grey surfaces.
+    var theme = document.createElement("link");
+    theme.rel = "stylesheet";
+    theme.href = "spriteforge-theme.css?v=4";
+    document.head.appendChild(theme);
     document.title = "SpriteForge · Manual editor";
     // SpriteForge validates editor limits on save. Piskel's legacy heuristic
     // warns for normal large sprites and creates an alarming false positive.
@@ -151,6 +157,15 @@
     }
     var performanceLink = document.querySelector(".performance-link");
     if (performanceLink) performanceLink.remove();
+    var coordinates = document.querySelector(".cursor-coordinates");
+    var formatCoordinates = function () {
+      if (!coordinates || coordinates.dataset.spriteforgeInfo === coordinates.textContent) return;
+      var match = coordinates.textContent.match(/\[(\d+)x(\d+)\].*?x([\d.]+).*?(\d+)\/(\d+)/);
+      if (!match) return;
+      coordinates.dataset.spriteforgeInfo = coordinates.textContent;
+      coordinates.innerHTML = '<span class="editor-info-size"><b>' + match[1] + ' × ' + match[2] + '</b><small>canvas</small></span><span class="editor-info-zoom">' + Math.round(Number(match[3]) * 100) + '%</span><span class="editor-info-frame">Frame ' + match[4] + ' / ' + match[5] + '</span>';
+    };
+    if (coordinates) { new MutationObserver(formatCoordinates).observe(coordinates, { childList: true, characterData: true, subtree: true }); formatCoordinates(); }
     $.subscribe(Events.PISKEL_SAVE_STATE, function () { if (!suppressDirty && initialized) send("spriteforge:dirty"); });
     suppressDirty = false;
     send("spriteforge:ready", { version: pskl._releaseVersion || "0.15.2-SNAPSHOT" });
