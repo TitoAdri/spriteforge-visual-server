@@ -3,7 +3,7 @@ import { assetGeneratorMarkup, setupAssetGenerator } from "/asset-generator.js?v
 import { assetPackMarkup, setupAssetPack } from "/asset-pack.js?v=5";
 import { tilesetMarkup, setupTileset } from "/tileset.js?v=5";
 import { animation4Markup, setupAnimation4 } from "/animation4.js?v=7";
-import { manualEditorMarkup, setupManualEditor } from "/manual-editor.js?v=15";
+import { manualEditorMarkup, setupManualEditor } from "/manual-editor.js?v=16";
 
 const asset = (path) => `/assets/${path}`;
 const readableName = (value) => {

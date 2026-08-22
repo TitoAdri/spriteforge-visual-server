@@ -11,6 +11,22 @@
   var initialized = false;
   var suppressDirty = true;
   var referenceFrameIndex = null;
+  var referenceZoom = 1;
+
+  function relayoutDrawingWorkspace() {
+    var drawing = pskl.app && pskl.app.drawingController;
+    if (!drawing) return;
+    if (!drawing.spriteforgeReferenceWidthPatched) {
+      var originalGetAvailableWidth = drawing.getAvailableWidth_.bind(drawing);
+      drawing.getAvailableWidth_ = function () {
+        var width = originalGetAvailableWidth();
+        return document.querySelector(".main-column").classList.contains("reference-open") ? Math.floor(width / 2) : width;
+      };
+      drawing.spriteforgeReferenceWidthPatched = true;
+    }
+    drawing.relayout_();
+    drawing.resetZoom_();
+  }
 
   function decorateFrameActions() {
     document.querySelectorAll(".delete-frame-action").forEach(function (action) { action.setAttribute("title", "Delete frame"); action.setAttribute("aria-label", "Delete frame"); });
@@ -33,7 +49,7 @@
     var canvasSlot = panel.querySelector("[data-reference-canvas]");
     canvas.className = "spriteforge-reference-canvas";
     canvasSlot.replaceChildren(canvas);
-    var scale = Math.max(1, Math.floor(Math.min(canvasSlot.clientWidth / canvas.width, canvasSlot.clientHeight / canvas.height)));
+    var scale = Math.max(1, Math.floor(Math.min(canvasSlot.clientWidth / canvas.width, canvasSlot.clientHeight / canvas.height)) * referenceZoom);
     canvas.style.width = (canvas.width * scale) + "px";
     canvas.style.height = (canvas.height * scale) + "px";
     panel.querySelector("[data-reference-label]").textContent = "Frame " + (referenceFrameIndex + 1) + " of " + frameCount;
@@ -54,17 +70,18 @@
     var panel = document.createElement("section");
     panel.id = "spriteforge-reference-frame";
     panel.className = "spriteforge-reference-frame";
-    panel.innerHTML = '<header><div><span>Reference frame</span><small data-reference-label></small></div><div><button type="button" data-reference-prev aria-label="Previous reference frame">‹</button><button type="button" data-reference-next aria-label="Next reference frame">›</button><button type="button" data-reference-close aria-label="Close reference">×</button></div></header><div class="spriteforge-reference-canvas-wrap" data-reference-canvas></div><p>Choose any frame below, then keep it beside the one you are painting.</p>';
+    panel.innerHTML = '<header><div><span>Reference frame</span><small data-reference-label></small></div><div><button type="button" data-reference-prev aria-label="Previous reference frame">‹</button><button type="button" data-reference-next aria-label="Next reference frame">›</button><button type="button" data-reference-close aria-label="Close reference">×</button></div></header><div class="spriteforge-reference-canvas-wrap" data-reference-canvas></div><p>Choose any frame below. Use the mouse wheel here to zoom the reference.</p>';
     var togglePanel = function () {
       var open = !panel.classList.contains("is-open");
       panel.classList.toggle("is-open", open); column.classList.toggle("reference-open", open);
       toggle.setAttribute("aria-expanded", String(open)); toggle.classList.toggle("is-open", open);
-      window.setTimeout(function () { window.dispatchEvent(new Event("resize")); $.publish(Events.FRAME_SIZE_CHANGED); renderReferenceFrame(); }, 40);
+      window.setTimeout(function () { relayoutDrawingWorkspace(); renderReferenceFrame(); }, 40);
     };
     toggle.addEventListener("click", togglePanel);
     panel.querySelector("[data-reference-prev]").addEventListener("click", function () { referenceFrameIndex = Math.max(0, (referenceFrameIndex === null ? 0 : referenceFrameIndex) - 1); renderReferenceFrame(); });
     panel.querySelector("[data-reference-next]").addEventListener("click", function () { var count = pskl.app.piskelController.getFrameCount(); referenceFrameIndex = Math.min(count - 1, (referenceFrameIndex === null ? 0 : referenceFrameIndex) + 1); renderReferenceFrame(); });
     panel.querySelector("[data-reference-close]").addEventListener("click", function () { if (panel.classList.contains("is-open")) togglePanel(); });
+    panel.querySelector("[data-reference-canvas]").addEventListener("wheel", function (event) { event.preventDefault(); referenceZoom = Math.max(0.25, Math.min(12, referenceZoom * (event.deltaY < 0 ? 1.18 : 1 / 1.18))); renderReferenceFrame(); }, { passive: false });
     column.append(toggle, panel);
   }
 
@@ -217,7 +234,7 @@
     // product theme last so legacy defaults cannot reintroduce grey surfaces.
     var theme = document.createElement("link");
     theme.rel = "stylesheet";
-    theme.href = "spriteforge-theme.css?v=10";
+    theme.href = "spriteforge-theme.css?v=11";
     document.head.appendChild(theme);
     document.title = "SpriteForge · Manual editor";
     // SpriteForge validates editor limits on save. Piskel's legacy heuristic
