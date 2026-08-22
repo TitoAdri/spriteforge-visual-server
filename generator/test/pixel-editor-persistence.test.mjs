@@ -116,6 +116,12 @@ test("manual uploads validate real signatures and editor snapshots reject forged
     assert.equal(upload.asset.files.original.mimeType, "image/png");
     assert.equal(f.sessionChecks.at(-1).csrf, true);
 
+    const processed = Readable.from([PNG]);
+    processed.user = f.owner;
+    processed.headers = { ...request.headers, "x-spriteforge-pixel-art": "1" };
+    const processedUpload = await f.library.uploadEditorAsset(processed);
+    assert.equal(processedUpload.asset.files["game-ready"].mimeType, "image/png");
+
     const invalid = Readable.from([Buffer.from("not an image")]);
     invalid.user = f.owner;
     invalid.headers = request.headers;
