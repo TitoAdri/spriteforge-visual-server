@@ -351,18 +351,27 @@ export function setupAppStudio({ initialAssetId = "", initialAnimationAssetId = 
       toolbar.className = "studio-viewer-toolbar";
       const toolbarLabel = document.createElement("span");
       toolbarLabel.className = "studio-viewer-toolbar-label";
-      toolbarLabel.textContent = isAnimation ? "Animation preview" : "Sprite preview";
+      toolbarLabel.textContent = isAnimation ? "Animation preview · scroll to zoom" : "Sprite preview · scroll to zoom";
       toolbar.append(toolbarLabel);
-      if (zoom) toolbar.append(zoom);
+      const zoomGroup = document.createElement("div");
+      zoomGroup.className = "studio-viewer-zoom-group";
+      if (zoom) zoomGroup.append(zoom);
+      toolbar.append(zoomGroup);
+      const toolbarActions = document.createElement("div");
+      toolbarActions.className = "studio-viewer-toolbar-actions";
       if (isEditorAdmin()) {
         const toolbarEditButton = document.createElement("button");
         toolbarEditButton.className = "studio-viewer-edit studio-viewer-toolbar-edit";
         toolbarEditButton.type = "button";
         toolbarEditButton.textContent = "Edit pixel art";
         toolbarEditButton.addEventListener("click", openPixelEditor);
-        toolbar.append(toolbarEditButton);
+        toolbarActions.append(toolbarEditButton);
       }
-      if (downloadControl) toolbar.append(downloadControl);
+      if (downloadControl) {
+        downloadControl.classList.add("studio-viewer-download");
+        toolbarActions.append(downloadControl);
+      }
+      toolbar.append(toolbarActions);
       const projectButton = assetDetail.querySelector("[data-action-project]");
       if (projectButton) {
         projectButton.className = "studio-viewer-project";
@@ -552,7 +561,15 @@ export function setupAppStudio({ initialAssetId = "", initialAnimationAssetId = 
     modalRoot.querySelectorAll("[data-auth-switch]").forEach((button) => button.addEventListener("click", () => openAuth(button.dataset.authSwitch)));
     modalRoot.querySelectorAll("[data-action-reference]").forEach((button) => button.addEventListener("click", () => { const item = assets.find((asset) => asset.id === button.dataset.actionReference); selectedReferences = [item]; closeModal(); setView("home"); notify(`${item.name} is now a style reference.`); }));
     const zoomLabel = modalRoot.querySelector("[data-studio-zoom-label]"); const zoomOut = modalRoot.querySelector("[data-studio-zoom-out]"); const zoomIn = modalRoot.querySelector("[data-studio-zoom-in]"); const previewImage = modalRoot.querySelector(".studio-asset-preview > img");
-    if (zoomLabel && zoomOut && zoomIn && previewImage) { let scale = 2.5; const renderZoom = () => { previewImage.style.transform = `scale(${scale})`; zoomLabel.textContent = `${scale.toFixed(1)}:1`; }; zoomOut.addEventListener("click", () => { scale = Math.max(0.5, scale - 0.5); renderZoom(); }); zoomIn.addEventListener("click", () => { scale = Math.min(8, scale + 0.5); renderZoom(); }); renderZoom(); }
+    if (zoomLabel && zoomOut && zoomIn && previewImage) {
+      let scale = 2.5;
+      const renderZoom = () => { previewImage.style.transform = `scale(${scale})`; zoomLabel.textContent = `${scale.toFixed(1)}:1`; zoomOut.disabled = scale <= 0.5; zoomIn.disabled = scale >= 8; };
+      const changeZoom = (amount) => { scale = Math.min(8, Math.max(0.5, Math.round((scale + amount) * 100) / 100)); renderZoom(); };
+      zoomOut.addEventListener("click", () => changeZoom(-0.5));
+      zoomIn.addEventListener("click", () => changeZoom(0.5));
+      previewImage.closest(".studio-asset-preview")?.addEventListener("wheel", (event) => { event.preventDefault(); changeZoom(event.deltaY < 0 ? 0.25 : -0.25); }, { passive: false });
+      renderZoom();
+    }
   };
   const wireView = () => {
     content.querySelectorAll("[data-asset]").forEach((button) => button.addEventListener("click", () => openAsset(button.dataset.asset)));
