@@ -143,10 +143,6 @@
   window.addEventListener("message", onMessage);
   window.piskelReadyCallbacks = window.piskelReadyCallbacks || [];
   window.piskelReadyCallbacks.push(function () {
-    var theme = document.createElement("link");
-    theme.rel = "stylesheet";
-    theme.href = "spriteforge-theme.css?v=1";
-    document.head.appendChild(theme);
     document.title = "SpriteForge · Manual editor";
     $.subscribe(Events.PISKEL_SAVE_STATE, function () { if (!suppressDirty && initialized) send("spriteforge:dirty"); });
     suppressDirty = false;
