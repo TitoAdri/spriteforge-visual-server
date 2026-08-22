@@ -310,13 +310,9 @@ export function createLibrary(auth) {
   const owned = (table, entityId, userId) => db.prepare(`SELECT * FROM ${table} WHERE id = ? AND user_id = ?`).get(entityId, userId);
   const requireOwned = (table, entityId, userId) => { const entity = owned(table, entityId, userId); if (!entity) throw new AuthError(404, "not_found", "Resource not found"); return entity; };
   const session = (request, write = false) => auth.requireSession(request, { csrf: write });
-  // The manual editor is an internal rollout feature.  Keep this check next to
-  // the session boundary so direct API calls cannot bypass the hidden UI.
-  const editorAdmin = (request, write = false) => {
-    const user = session(request, write);
-    if (user.role !== "admin") throw new AuthError(403, "editor_admin_only", "The manual pixel editor is currently available to administrators only");
-    return user;
-  };
+  // Editing is available to every signed-in user. Ownership checks below still
+  // ensure users can only access their own assets and revisions.
+  const editorSession = (request, write = false) => session(request, write);
   const assetPublic = (asset) => ({ ...asset, recipe: parseJson(asset.recipe_json), normalization: parseJson(asset.normalization_json), recipe_json: undefined, normalization_json: undefined });
   const packPublic = (pack, items) => ({ ...pack, settings: parseJson(pack.settings_json), styleTags: parseJson(pack.style_tags_json), items, settings_json: undefined, style_tags_json: undefined });
   const tilesetPublic = (tileset, tiles) => ({ ...tileset, settings: parseJson(tileset.settings_json), styleTags: parseJson(tileset.style_tags_json), tiles, settings_json: undefined, style_tags_json: undefined });
@@ -654,7 +650,7 @@ export function createLibrary(auth) {
   };
   const revisionPublic = (revision) => ({ id: revision.id, number: revision.revision_number, width: revision.width, height: revision.height, frameCount: revision.frame_count, documentByteSize: revision.document_byte_size, gameReadyByteSize: revision.game_ready_byte_size, animationByteSize: revision.animation_byte_size || null, createdAt: revision.created_at });
   const editorInfo = async (request, assetId) => {
-    const user = editorAdmin(request); const asset = requireOwned("assets", assetId, user.id);
+    const user = editorSession(request); const asset = requireOwned("assets", assetId, user.id);
     const files = db.prepare("SELECT variant,mime_type,byte_size FROM asset_files WHERE asset_id=?").all(asset.id);
     const fileMap = {}; for (const file of files) fileMap[file.variant] = { mimeType: file.mime_type, byteSize: file.byte_size, url: `/api/assets/${asset.id}/files/${file.variant}` };
     const revisions = db.prepare("SELECT * FROM asset_editor_revisions WHERE asset_id=? ORDER BY revision_number DESC LIMIT ?").all(asset.id, MAX_EDITOR_REVISIONS).map(revisionPublic);
@@ -663,7 +659,7 @@ export function createLibrary(auth) {
     return { asset: { ...assetPublic(asset), files: fileMap }, mode: asset.kind === "animation" ? "animation" : "image", animationImport, currentRevision, revisions };
   };
   const fetchEditorAnimationImport = async (request, assetId) => {
-    const user = editorAdmin(request); const asset = requireOwned("assets", assetId, user.id); const source = await animationImportSource(asset);
+    const user = editorSession(request); const asset = requireOwned("assets", assetId, user.id); const source = await animationImportSource(asset);
     let gif;
     try {
       const raw = await sharp(source.bytes, { animated: true, failOn: "none" }).ensureAlpha().raw().toBuffer();
@@ -673,7 +669,7 @@ export function createLibrary(auth) {
     return { bytes: gif, mimeType: "image/gif" };
   };
   const fetchEditorRevision = async (request, assetId, revisionId) => {
-    const user = editorAdmin(request); const asset = requireOwned("assets", assetId, user.id);
+    const user = editorSession(request); const asset = requireOwned("assets", assetId, user.id);
     const revision = db.prepare("SELECT * FROM asset_editor_revisions WHERE id=? AND asset_id=?").get(revisionId, asset.id);
     if (!revision) throw new AuthError(404, "not_found", "Editor revision not found");
     return { bytes: await fs.readFile(path.join(root, revision.document_storage_key)), mimeType: "application/json; charset=utf-8" };
@@ -708,14 +704,14 @@ export function createLibrary(auth) {
     }
     return { revision: revisionPublic({ id: revisionId, revision_number: revisionNumber, width: snapshot.width, height: snapshot.height, frame_count: snapshot.frameCount, document_byte_size: snapshot.documentBytes, game_ready_byte_size: snapshot.gameReady.bytes.length, animation_byte_size: snapshot.animation?.bytes.length || null, created_at: time }), files: { "game-ready": { mimeType: "image/png", url: `/api/assets/${asset.id}/files/game-ready` }, animation: snapshot.animation ? { mimeType: snapshot.animation.mimeType, url: `/api/assets/${asset.id}/files/animation` } : null } };
   };
-  const saveEditorRevision = async (request, assetId, payload) => saveEditorRevisionForUser(editorAdmin(request, true), assetId, payload);
+  const saveEditorRevision = async (request, assetId, payload) => saveEditorRevisionForUser(editorSession(request, true), assetId, payload);
   const copyEditorAsset = async (request, sourceAssetId, payload) => {
-    const user = editorAdmin(request, true); const source = requireOwned("assets", sourceAssetId, user.id); const time = now(); const copy = { ...source, id: id(), parent_asset_id: source.id, name: text(payload?.name, "asset_name"), status: "draft", provider: source.provider || "manual-editor", created_at: time, updated_at: time };
+    const user = editorSession(request, true); const source = requireOwned("assets", sourceAssetId, user.id); const time = now(); const copy = { ...source, id: id(), parent_asset_id: source.id, name: text(payload?.name, "asset_name"), status: "draft", provider: source.provider || "manual-editor", created_at: time, updated_at: time };
     db.prepare("INSERT INTO assets (id,user_id,project_id,collection_id,parent_asset_id,theme_id,theme_version,kind,name,status,provider,model,prompt,recipe_json,normalization_json,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)").run(copy.id, copy.user_id, copy.project_id, copy.collection_id, copy.parent_asset_id, copy.theme_id, copy.theme_version, copy.kind, copy.name, copy.status, copy.provider, copy.model, copy.prompt, copy.recipe_json, copy.normalization_json, time, time);
     try { const saved = await saveEditorRevisionForUser(user, copy.id, payload); return { asset: assetPublic(copy), ...saved }; } catch (error) { db.prepare("DELETE FROM assets WHERE id=? AND user_id=?").run(copy.id, user.id); throw error; }
   };
   const uploadEditorAsset = async (request) => {
-    const user = editorAdmin(request, true); let decodedName; try { decodedName = decodeURIComponent(String(request.headers["x-asset-name"] || "")); } catch { decodedName = ""; } const name = text(decodedName, "asset_name"); const kind = String(request.headers["x-asset-kind"] || "reference").toLowerCase(); if (!ASSET_KINDS.has(kind)) throw new AuthError(400, "invalid_asset_kind", "Invalid asset kind");
+    const user = editorSession(request, true); let decodedName; try { decodedName = decodeURIComponent(String(request.headers["x-asset-name"] || "")); } catch { decodedName = ""; } const name = text(decodedName, "asset_name"); const kind = String(request.headers["x-asset-kind"] || "reference").toLowerCase(); if (!ASSET_KINDS.has(kind)) throw new AuthError(400, "invalid_asset_kind", "Invalid asset kind");
     const bytes = await readBytes(request); const type = imageType(bytes); const imageInfo = type && editorImageInfo(bytes, type.mimeType); if (!type || !imageInfo) throw new AuthError(415, "invalid_image", "Only valid PNG, JPG and WebP images are accepted"); if (imageInfo.width > 1024 || imageInfo.height > 1024) throw new AuthError(400, "image_dimensions_too_large", "Images must be 1024×1024 or smaller");
     const time = now(); const asset = { id: id(), user_id: user.id, project_id: null, collection_id: null, parent_asset_id: null, theme_id: null, theme_version: null, kind, name, status: "draft", provider: "upload", model: null, prompt: null, recipe_json: JSON.stringify({ source: "manual-upload" }), normalization_json: "{}", created_at: time, updated_at: time };
     const directory = path.join(root, user.id, asset.id); await fs.mkdir(directory, { recursive: true, mode: 0o700 }); const storageKey = path.join(user.id, asset.id, `original.${type.extension}`); const absolute = path.join(root, storageKey);

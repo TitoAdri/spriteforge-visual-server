@@ -11,7 +11,7 @@ const chooser = (assets) => `<section class="manual-editor-chooser" data-editor-
 
 export const manualEditorMarkup = ({ assets = [], assetId = "" } = {}) => `<section class="studio-view manual-editor-view" data-manual-editor data-asset-id="${escapeHtml(assetId)}">
   <header class="manual-editor-toolbar">
-    <div class="manual-editor-identity"><div><span class="manual-editor-kicker" data-editor-kicker>ADMIN TOOL · PIXEL EDITOR</span><b data-editor-title>Manual editor</b></div><span data-editor-asset-name>${assetId ? "Loading asset…" : "No asset selected"}</span><small data-editor-frame-summary hidden></small></div>
+    <div class="manual-editor-identity"><div><span class="manual-editor-kicker" data-editor-kicker>SPRITEFORGE · PIXEL EDITOR</span><b data-editor-title>Manual editor</b></div><span data-editor-asset-name>${assetId ? "Loading asset…" : "No asset selected"}</span><small data-editor-frame-summary hidden></small></div>
     <div class="manual-editor-tools"><button data-editor-choose type="button">Change asset</button><button data-editor-history-toggle type="button">History</button><button class="manual-editor-save" data-editor-save type="button" disabled>Save</button><button data-editor-save-copy type="button" disabled>Save as new</button></div>
     <span class="manual-editor-status" data-editor-status>No changes</span>
   </header>
@@ -62,7 +62,7 @@ export function setupManualEditor({ assets = [], initialAssetId = "", onNavigate
       const response = await fetch(`/api/assets/${assetId}/editor`, { credentials: "same-origin", cache: "no-store" }); const payload = await response.json(); if (!response.ok) throw new Error(payload.error || "Asset could not be opened"); info = payload;
       const animation = payload.mode === "animation";
       root.dataset.editorMode = animation ? "animation" : "image";
-      root.querySelector("[data-editor-kicker]").textContent = animation ? "ADMIN TOOL · ANIMATION EDITOR" : "ADMIN TOOL · PIXEL EDITOR";
+      root.querySelector("[data-editor-kicker]").textContent = animation ? "SPRITEFORGE · ANIMATION EDITOR" : "SPRITEFORGE · PIXEL EDITOR";
       root.querySelector("[data-editor-title]").textContent = animation ? "Animation editor" : "Manual editor";
       root.querySelector("[data-editor-asset-name]").textContent = `${animation ? "Animation" : "Asset"}: ${payload.asset.name}`;
       const frameSummary = root.querySelector("[data-editor-frame-summary]");

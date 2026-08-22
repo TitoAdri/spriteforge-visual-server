@@ -29,7 +29,7 @@ async function fixture() {
   const previousStorage = process.env.SPRITEFORGE_ASSET_STORAGE_PATH;
   process.env.SPRITEFORGE_ASSET_STORAGE_PATH = storage;
   const db = new DatabaseSync(":memory:");
-  const owner = { id: uuid("1"), role: "admin" };
+  const owner = { id: uuid("1"), role: "user" };
   const stranger = { id: uuid("9"), role: "user" };
   db.exec("CREATE TABLE users (id TEXT PRIMARY KEY)");
   db.prepare("INSERT INTO users (id) VALUES (?), (?)").run(owner.id, stranger.id);
@@ -99,9 +99,9 @@ test("save as new inherits asset metadata and isolates editor documents by owner
     assert.equal(row.normalization_json, '{"scale":2}');
     assert.equal((await f.library.editorInfo({ user: f.owner }, copy.asset.id)).revisions.length, 1);
 
-    await assert.rejects(f.library.editorInfo({ user: f.stranger }, f.assetId), (error) => error.status === 403 && error.code === "editor_admin_only");
-    await assert.rejects(f.library.saveEditorRevision({ user: f.stranger }, f.assetId, snapshot()), (error) => error.status === 403 && error.code === "editor_admin_only");
-    await assert.rejects(f.library.copyEditorAsset({ user: f.stranger }, f.assetId, { name: "Stolen", ...snapshot() }), (error) => error.status === 403 && error.code === "editor_admin_only");
+    await assert.rejects(f.library.editorInfo({ user: f.stranger }, f.assetId), (error) => error.status === 404 && error.code === "not_found");
+    await assert.rejects(f.library.saveEditorRevision({ user: f.stranger }, f.assetId, snapshot()), (error) => error.status === 404 && error.code === "not_found");
+    await assert.rejects(f.library.copyEditorAsset({ user: f.stranger }, f.assetId, { name: "Stolen", ...snapshot() }), (error) => error.status === 404 && error.code === "not_found");
   } finally { await f.close(); }
 });
 
@@ -123,10 +123,11 @@ test("manual uploads validate real signatures and editor snapshots reject forged
     await assert.rejects(f.library.saveEditorRevision({ user: f.owner }, f.assetId, { ...snapshot(), width: 1025 }), (error) => error.status === 400);
     await assert.rejects(f.library.saveEditorRevision({ user: f.owner }, f.assetId, snapshot({ width: 2 })), (error) => error.code === "invalid_editor_image_metadata");
     await assert.rejects(f.library.saveEditorRevision({ user: f.owner }, f.assetId, { ...snapshot(), gameReadyBase64: Buffer.from("fake png data").toString("base64") }), (error) => error.status === 415);
-    const unauthorized = Readable.from([PNG]);
-    unauthorized.user = f.stranger;
-    unauthorized.headers = request.headers;
-    await assert.rejects(f.library.uploadEditorAsset(unauthorized), (error) => error.status === 403 && error.code === "editor_admin_only");
+    const secondUpload = Readable.from([PNG]);
+    secondUpload.user = f.stranger;
+    secondUpload.headers = request.headers;
+    const strangerUpload = await f.library.uploadEditorAsset(secondUpload);
+    assert.equal(strangerUpload.asset.user_id, f.stranger.id);
   } finally { await f.close(); }
 });
 
@@ -165,7 +166,7 @@ test("animation editor privately converts every source frame into an editable GI
     assert.equal(reopened.animationImport, null);
     const copied = await f.library.copyEditorAsset({ user: f.owner }, animationId, { name: "Flame loop — edit", ...snapshot({ frameCount: 2 }) });
     assert.equal(copied.asset.kind, "animation");
-    await assert.rejects(f.library.fetchEditorAnimationImport({ user: f.stranger }, animationId), (error) => error.status === 403 && error.code === "editor_admin_only");
+    await assert.rejects(f.library.fetchEditorAnimationImport({ user: f.stranger }, animationId), (error) => error.status === 404 && error.code === "not_found");
   } finally { await f.close(); }
 });
 
