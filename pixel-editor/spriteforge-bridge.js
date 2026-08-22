@@ -157,6 +157,43 @@
     controller.renderAsImageDataAnimatedGIF(1, pskl.app.piskelController.getFPS(), callback);
   }
 
+  // Piskel chooses the GIF transparency key from the currently selected
+  // palette only. In an animation that color can legitimately occur in a
+  // different frame, which turns those pixels into transparent speckles in
+  // previews and downloads. Pick a key that is absent from every rendered
+  // frame instead. This keeps the original palette intact while preserving
+  // transparency across the whole animation.
+  function patchGifTransparency() {
+    var namespace = pskl.controller && pskl.controller.settings && pskl.controller.settings.exportimage;
+    var prototype = namespace && namespace.GifExportController && namespace.GifExportController.prototype;
+    if (!prototype || prototype.spriteforgeTransparencyPatched) return;
+    var controller = pskl.app.piskelController;
+    prototype.getTransparentColor = function () {
+      var used = Object.create(null);
+      var frameCount = controller.getFrameCount();
+      for (var frameIndex = 0; frameIndex < frameCount; frameIndex++) {
+        var rendered = controller.renderFrameAt(frameIndex, true);
+        var context = rendered && rendered.getContext && rendered.getContext("2d");
+        if (!context) continue;
+        var pixels = context.getImageData(0, 0, rendered.width, rendered.height).data;
+        for (var index = 0; index < pixels.length; index += 4) {
+          if (pixels[index + 3] === 0) continue;
+          used[(pixels[index] << 16) | (pixels[index + 1] << 8) | pixels[index + 2]] = true;
+        }
+      }
+      for (var red = 0; red < 256; red += 17) {
+        for (var green = 0; green < 256; green += 17) {
+          for (var blue = 0; blue < 256; blue += 17) {
+            var value = (red << 16) | (green << 8) | blue;
+            if (!used[value]) return "#" + value.toString(16).padStart(6, "0");
+          }
+        }
+      }
+      return "#ff00ff";
+    };
+    prototype.spriteforgeTransparencyPatched = true;
+  }
+
   function snapshot(requestId) {
     try {
       var controller = pskl.app.piskelController;
@@ -251,6 +288,7 @@
     var performanceLink = document.querySelector(".performance-link");
     if (performanceLink) performanceLink.remove();
     restyleCanvasSurface();
+    patchGifTransparency();
     mountReferencePanel();
     $.subscribe(Events.PISKEL_RESET, function () { window.setTimeout(function () { decorateFrameActions(); renderReferenceFrame(); }, 0); });
     $.subscribe(Events.TOOL_RELEASED, function () { window.setTimeout(renderReferenceFrame, 0); });
