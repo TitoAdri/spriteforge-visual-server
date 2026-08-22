@@ -112,6 +112,7 @@ Antes de desplegar backend, confirmar que `generator/.env` existe en el servidor
 | --- | --- |
 | `index.html` | Documento base, importaciones CSS/JS y parámetros de versión para evitar caché. |
 | `app.js` | Router SPA ligero y landing/marketing, precios, docs, legales, modal de login y funnel de Character Creator. |
+| `site-analytics.js` | Métricas first-party de navegación y embudo; puente opcional a GA4 con consentimiento. |
 | `app-studio.js` | Workspace `/app`: home, biblioteca, proyectos, temas, perfil, ajustes, soporte y visor de assets. |
 | `app-studio.css` | Layout principal del workspace y barra lateral. |
 | `styles.css` | Estilos generales de landing y componentes compartidos. |
@@ -249,6 +250,29 @@ Fuente única de costes: `generator/src/billing-catalog.mjs`.
 | Animación | 25 créditos |
 
 Planes definidos en código: Starter `$9 / 700`, Creator `$19 / 1.600`, Studio `$39 / 3.800`. Si se modifica un valor, revisar a la vez catálogo, Price ID de Stripe, marketing y pruebas de webhook.
+
+### Métricas y conversiones
+
+El sitio registra métricas first-party en la tabla SQLite `analytics_events`. No se guardan emails, IPs ni agentes de usuario; el navegador solo usa un identificador temporal por pestaña para distinguir sesiones anónimas. Los eventos actuales son:
+
+- `page_view`: navegación de la SPA.
+- `pricing_viewed`: visita de `/pricing`.
+- `plan_selected`: clic en elegir Starter, Creator o Studio.
+- `checkout_started`: Stripe creó correctamente una sesión de checkout.
+- `signup_verified`: email verificado correctamente.
+- `generation_completed`: generación de imagen o animación guardada.
+- `purchase_completed` / `subscription_renewed`: grant de factura confirmado por webhook de Stripe.
+
+El resumen está protegido para administradores:
+
+```text
+GET /api/analytics/summary
+GET /api/analytics/summary?from=2026-08-01&to=2026-09-01
+```
+
+La respuesta incluye totales, desglose por plan y serie diaria. El frontend envía eventos a `POST /api/analytics/events`; ese endpoint está limitado, valida el origen y solo acepta los eventos de navegación permitidos.
+
+GA4 está preparado pero desactivado por defecto. Para activarlo, poner el Measurement ID `G-...` en el `meta[name="ga-measurement-id"]` de `index.html` y conceder `localStorage.spriteforge_analytics_consent = "granted"` desde el banner de consentimiento de la web. El puente usa `page_view`, `select_item` y `begin_checkout`; los eventos de registro, generación y compra siguen teniendo como fuente de verdad el servidor.
 
 ## Datos y dependencias
 

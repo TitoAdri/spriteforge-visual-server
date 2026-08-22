@@ -19,6 +19,18 @@ const EMAIL_VERIFICATION_TTL_MS = 24 * 60 * 60 * 1000;
 const PASSWORD_RESET_TTL_MS = 60 * 60 * 1000;
 const SIGNUP_NETWORK_WINDOW_MS = 24 * 60 * 60 * 1000;
 const SIGNUP_NETWORK_LIMIT = 10;
+const ANALYTICS_EVENTS = new Set([
+  "page_view",
+  "pricing_viewed",
+  "plan_selected",
+  "checkout_started",
+  "signup_verified",
+  "generation_completed",
+  "purchase_completed",
+  "subscription_renewed",
+]);
+const ANALYTICS_CLIENT_EVENTS = new Set(["page_view", "pricing_viewed", "plan_selected", "checkout_started"]);
+const ANALYTICS_PLAN_IDS = new Set(["starter", "creator", "studio"]);
 const scryptOptions = { N: 32768, r: 8, p: 1, maxmem: 128 * 1024 * 1024 };
 
 const now = () => Date.now();
@@ -215,6 +227,21 @@ export function createAuth() {
       expires_at INTEGER NOT NULL,
       consumed_at INTEGER
     );
+    CREATE TABLE IF NOT EXISTS analytics_events (
+      id TEXT PRIMARY KEY,
+      event_name TEXT NOT NULL,
+      path TEXT,
+      plan_id TEXT,
+      product TEXT,
+      user_id TEXT REFERENCES users(id) ON DELETE SET NULL,
+      client_id TEXT,
+      value_cents INTEGER,
+      currency TEXT,
+      metadata TEXT NOT NULL DEFAULT '{}',
+      created_at INTEGER NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS analytics_events_name_index ON analytics_events(event_name, created_at);
+    CREATE INDEX IF NOT EXISTS analytics_events_plan_index ON analytics_events(plan_id, created_at);
   `);
   // Existing installations predate subscription_refresh. SQLite cannot alter a
   // CHECK constraint, so migrate the ledger atomically while preserving rows.
@@ -384,6 +411,55 @@ export function createAuth() {
     }
     return session;
   };
+  const recordAnalyticsEvent = ({ eventName, path = null, planId = null, product = null, userId = null, clientId = null, valueCents = null, currency = null, metadata = {} }) => {
+    const name = String(eventName || "");
+    if (!ANALYTICS_EVENTS.has(name)) throw new AuthError(400, "invalid_analytics_event", "Unsupported analytics event");
+    const normalizedPlan = planId == null || planId === "" ? null : String(planId).toLowerCase();
+    if (normalizedPlan && !ANALYTICS_PLAN_IDS.has(normalizedPlan)) throw new AuthError(400, "invalid_analytics_plan", "Unsupported analytics plan");
+    const normalizedPath = path == null ? null : String(path).slice(0, 200);
+    const normalizedProduct = product == null ? null : String(product).slice(0, 80);
+    const normalizedClient = clientId == null ? null : String(clientId).slice(0, 100);
+    const normalizedValue = valueCents == null ? null : Number(valueCents);
+    if (normalizedValue != null && (!Number.isInteger(normalizedValue) || normalizedValue < 0 || normalizedValue > 10_000_000)) throw new AuthError(400, "invalid_analytics_value", "Invalid analytics value");
+    const normalizedCurrency = currency == null ? null : String(currency).slice(0, 3).toUpperCase();
+    const metadataJson = JSON.stringify(metadata && typeof metadata === "object" ? metadata : {});
+    if (metadataJson.length > 2_000) throw new AuthError(400, "analytics_metadata_too_large", "Analytics metadata is too large");
+    db.prepare("INSERT INTO analytics_events (id,event_name,path,plan_id,product,user_id,client_id,value_cents,currency,metadata,created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?)")
+      .run(randomToken(16), name, normalizedPath, normalizedPlan, normalizedProduct, userId ? String(userId) : null, normalizedClient, normalizedValue, normalizedCurrency, metadataJson, now());
+  };
+  const trackAnalyticsEvent = (request, payload = {}) => {
+    configured(); assertSecureTransport(request);
+    rateLimit(`analytics:${networkHash(request)}`, 240, 60 * 1000);
+    const eventName = String(payload.eventName || "");
+    if (!ANALYTICS_CLIENT_EVENTS.has(eventName)) throw new AuthError(400, "invalid_analytics_event", "Unsupported client analytics event");
+    const clientId = String(payload.clientId || "");
+    if (clientId && !/^[A-Za-z0-9_-]{8,100}$/.test(clientId)) throw new AuthError(400, "invalid_analytics_client", "Invalid analytics client id");
+    const session = getSession(request);
+    recordAnalyticsEvent({
+      eventName,
+      path: payload.path,
+      planId: payload.planId,
+      product: payload.product,
+      userId: session?.id || null,
+      clientId: clientId || null,
+      valueCents: payload.valueCents,
+      currency: payload.currency,
+      metadata: payload.metadata,
+    });
+    return { ok: true };
+  };
+  const analyticsSummary = (request, { from = null, to = null } = {}) => {
+    const session = requireSession(request);
+    if (session.role !== "admin") throw new AuthError(403, "admin_required", "Administrator access required");
+    const end = to && Number.isFinite(Number(to)) ? Number(to) : now();
+    const start = from && Number.isFinite(Number(from)) ? Number(from) : end - 90 * 24 * 60 * 60 * 1000;
+    const safeStart = Math.max(0, Math.min(start, end));
+    const safeEnd = Math.max(safeStart, Math.min(end, safeStart + 366 * 24 * 60 * 60 * 1000));
+    const totals = Object.fromEntries(db.prepare("SELECT event_name, COUNT(*) AS count FROM analytics_events WHERE created_at >= ? AND created_at < ? GROUP BY event_name ORDER BY event_name").all(safeStart, safeEnd).map((row) => [row.event_name, Number(row.count)]));
+    const byPlan = db.prepare("SELECT event_name, plan_id, COUNT(*) AS count FROM analytics_events WHERE created_at >= ? AND created_at < ? AND plan_id IS NOT NULL GROUP BY event_name, plan_id ORDER BY event_name, plan_id").all(safeStart, safeEnd).map((row) => ({ eventName: row.event_name, planId: row.plan_id, count: Number(row.count) }));
+    const daily = db.prepare("SELECT strftime('%Y-%m-%d', created_at / 1000, 'unixepoch') AS day, event_name, COUNT(*) AS count FROM analytics_events WHERE created_at >= ? AND created_at < ? GROUP BY day, event_name ORDER BY day, event_name").all(safeStart, safeEnd).map((row) => ({ day: row.day, eventName: row.event_name, count: Number(row.count) }));
+    return { range: { from: new Date(safeStart).toISOString(), to: new Date(safeEnd).toISOString() }, totals, byPlan, daily };
+  };
 
   return {
     // Library and billing modules share this single database connection.  It is
@@ -487,7 +563,7 @@ export function createAuth() {
         db.exec("COMMIT"); return { ok: true };
       } catch (error) { try { db.exec("ROLLBACK"); } catch {} throw error; }
     },
-    verifyEmail(request, response, token) { configured(); const user = verifyEmailToken(token); issueSession(response, request, user.id); return { user }; },
+    verifyEmail(request, response, token) { configured(); const user = verifyEmailToken(token); recordAnalyticsEvent({ eventName: "signup_verified", userId: user.id, metadata: { method: "email" } }); issueSession(response, request, user.id); return { user }; },
     beginGoogle(request, response) {
       configured();
       if (!requestIsHttps(request) || !googleReady()) throw new AuthError(503, "google_auth_unavailable", "Google sign-in is not configured yet.");
@@ -517,7 +593,7 @@ export function createAuth() {
       const profileResponse = await fetch("https://openidconnect.googleapis.com/v1/userinfo", { headers: { Authorization: `Bearer ${token.access_token}` }, signal: AbortSignal.timeout(30_000) });
       const profile = profileResponse.ok ? await profileResponse.json() : null;
       if (!profile || !profile.sub || profile.email_verified !== true) throw new AuthError(403, "google_email_unverified", "Use a Google account with a verified email address.");
-      const email = canonicalEmail(profile.email); const subject = String(profile.sub); let userId;
+      const email = canonicalEmail(profile.email); const subject = String(profile.sub); let userId; let created = false;
       db.exec("BEGIN IMMEDIATE");
       try {
         const identity = db.prepare("SELECT user_id FROM user_identities WHERE provider='google' AND provider_subject=?").get(subject);
@@ -528,12 +604,14 @@ export function createAuth() {
           if (!identity) db.prepare("INSERT INTO user_identities(id,user_id,provider,provider_subject,created_at) VALUES (?,?,'google',?,?)").run(randomToken(16), userId, subject, time);
         } else {
           userId = randomToken(16);
+          created = true;
           db.prepare("INSERT INTO users(id,email,role,credit_balance,email_verified,created_at,updated_at) VALUES (?,?,'user',0,1,?,?)").run(userId, email, time, time);
           db.prepare("INSERT INTO user_identities(id,user_id,provider,provider_subject,created_at) VALUES (?,?,'google',?,?)").run(randomToken(16), userId, subject, time);
         }
         grantStartingCredits(userId, "google_verified_email");
         db.exec("COMMIT");
       } catch (error) { try { db.exec("ROLLBACK"); } catch {} throw error; }
+      if (created) recordAnalyticsEvent({ eventName: "signup_verified", userId, metadata: { method: "google" } });
       issueSession(response, request, userId); clearOAuthCookie(response);
       return publicUser(db.prepare("SELECT * FROM users WHERE id=?").get(userId));
     },
@@ -585,6 +663,9 @@ export function createAuth() {
       const session = requireSession(request, { csrf: true });
       return { user: session, customer: db.prepare("SELECT stripe_customer_id FROM stripe_customers WHERE user_id=?").get(session.id) || null };
     },
+    trackAnalyticsEvent,
+    recordAnalyticsEvent,
+    analyticsSummary,
     processStripeEvent(event, { planForPriceId, planForId = () => null }) {
       const eventId = String(event?.id || ""); const eventType = String(event?.type || ""); const object = event?.data?.object;
       if (!/^evt_[A-Za-z0-9]+$/.test(eventId) || !eventType || !object || typeof object !== "object") throw new AuthError(400, "invalid_stripe_event", "Invalid Stripe event");
@@ -608,6 +689,7 @@ export function createAuth() {
       const grantPaidInvoice = ({ userId, customerId, invoiceId, plan, subscriptionId = null, periodEnd = null }) => {
         if (!userId || !plan || !/^in_[A-Za-z0-9]+$/.test(invoiceId)) return false;
         if (db.prepare("SELECT 1 FROM stripe_credit_grants WHERE stripe_invoice_id=?").get(invoiceId)) return false;
+        const hadPriorGrant = Boolean(db.prepare("SELECT 1 FROM stripe_credit_grants WHERE user_id=? LIMIT 1").get(userId));
         const user = db.prepare("SELECT credit_balance,credit_exempt FROM users WHERE id=?").get(userId);
         if (!user) return false;
         const balance = user.credit_exempt ? user.credit_balance : plan.credits;
@@ -621,6 +703,7 @@ export function createAuth() {
         }
         db.prepare("INSERT INTO stripe_credit_grants (stripe_invoice_id,user_id,plan_id,credits,created_at) VALUES (?,?,?,?,?)").run(invoiceId, userId, plan.id, plan.credits, time);
         upsertCustomer(userId, customerId, { subscriptionId, planId: plan.id, status: "active", periodEnd });
+        recordAnalyticsEvent({ eventName: hadPriorGrant ? "subscription_renewed" : "purchase_completed", planId: plan.id, userId, valueCents: Math.round(Number(plan.monthlyUsd || 0) * 100), currency: "USD", metadata: { invoiceId } });
         return true;
       };
       try {

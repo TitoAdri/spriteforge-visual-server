@@ -348,6 +348,8 @@ function render() {
   const path = window.location.pathname;
   if (window.__spriteforgeXPageViewPath !== path) {
     window.spriteforgeTrackX?.("PageView", {});
+    window.spriteforgeTrackPageView?.(path);
+    if (path === "/pricing") window.spriteforgeTrackPricing?.(path);
     window.__spriteforgeXPageViewPath = path;
   }
   if (path === "/reset-password") { document.querySelector("#app").innerHTML = passwordResetMarkup(); setupPasswordReset(); return; }
@@ -373,6 +375,7 @@ function render() {
   });
   document.querySelectorAll("[data-plan-signup]").forEach((button) => button.addEventListener("click", async () => {
     const planId = button.dataset.planSignup;
+    window.spriteforgeTrack?.("plan_selected", { path, planId, metadata: { placement: "pricing" } });
     try {
       const authResponse = await fetch("/api/auth/me", { credentials: "same-origin" }); const auth = await authResponse.json();
       if (!auth.user) { openMarketingAuth("register"); return; }
