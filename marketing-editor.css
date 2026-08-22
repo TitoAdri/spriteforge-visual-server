@@ -1,4 +1,10 @@
 /* Human-in-the-loop editor feature on the public landing page. */
+.hero-animation-cta{display:flex;align-items:center;justify-content:center;gap:10px;flex-wrap:wrap;margin:17px auto 0;color:#b9a79d;font-size:12px}
+.hero-animation-cta>span{color:#e7d9d1;font-weight:700}
+.hero-animation-cta label{display:inline-flex;align-items:center;gap:6px;padding:8px 12px;border:1px solid #e1a27466;border-radius:8px;background:#ffffff08;color:#f3b187;font-size:11px;font-weight:800;cursor:pointer;transition:transform .18s ease,background .18s ease,border-color .18s ease}
+.hero-animation-cta label:hover{transform:translateY(-1px);background:#d8793d1c;border-color:#efaa7caa}
+.hero-animation-cta small{flex-basis:100%;color:#8f837d;font-size:10px}
+.hero-animation-cta p{flex-basis:100%;margin:0;color:#f19a76;font-size:11px}
 .editor-feature{position:relative;display:grid;grid-template-columns:minmax(280px,.78fr) minmax(0,1.22fr);gap:clamp(36px,7vw,100px);align-items:center;padding-top:120px;padding-bottom:125px}
 .editor-feature-copy{position:relative;z-index:1}
 .editor-feature h2{font-size:clamp(38px,5vw,62px);line-height:1.04;letter-spacing:-.065em;margin:15px 0 24px}
