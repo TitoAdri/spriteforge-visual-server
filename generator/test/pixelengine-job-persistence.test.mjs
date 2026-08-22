@@ -19,7 +19,8 @@ test("PixelEngine jobs persist per clip and never share an output asset", () => 
   assert.equal(library.getPixelEngineJob({}, firstJob.id).job.api_job_id, "remote-first");
   library.updatePixelEngineJob(user.id, firstJob.id, { status: "pending", progress: 0.5 });
   const rows = db.prepare("SELECT id,clip_id,status,progress FROM pixelengine_jobs ORDER BY created_at,id").all();
-  assert.equal(rows.length, 2); assert.equal(rows[0].clip_id, first.id); assert.equal(rows[1].clip_id, second.id); assert.equal(rows[0].status, "pending");
+  const rowsById = new Map(rows.map((row) => [row.id, row]));
+  assert.equal(rows.length, 2); assert.equal(rowsById.get(firstJob.id).clip_id, first.id); assert.equal(rowsById.get(secondJob.id).clip_id, second.id); assert.equal(rowsById.get(firstJob.id).status, "pending");
   const firstAsset = uuid("3"); const secondAsset = uuid("4");
   for (const assetId of [firstAsset, secondAsset]) db.prepare("INSERT INTO assets (id,user_id,kind,name,status,recipe_json,normalization_json,created_at,updated_at) VALUES (?,?, 'animation','Output','draft','{}','{}',?,?)").run(assetId, user.id, time, time);
   library.linkAnimationOutput(first.id, firstAsset); library.linkAnimationOutput(second.id, secondAsset);

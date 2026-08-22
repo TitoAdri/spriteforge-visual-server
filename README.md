@@ -125,6 +125,8 @@ Antes de desplegar backend, confirmar que `generator/.env` existe en el servidor
 | `grid.js`, `grid.css` | Página pública `/pixel-grid-detector`. |
 | `character-creator.js`, `creator*.css` | Creador de personaje y normalización/controles de grid en funnel. |
 | `asset-generator.js`, `asset-generator.css` | Creador de objetos, iconos, props, edificios y escenario. |
+| `manual-editor.js`, `manual-editor.css` | Shell SpriteForge del editor manual: selector/upload, toolbar, historial, guardado y puente seguro con Piskel. |
+| `pixel-editor/` | Piskel 0.15.2-SNAPSHOT vendorizado (commit `a6b9c02daefceb10093f71e92d52d16920ccb16e`), servido sin CDN. Incluye licencia y avisos de terceros. |
 | `tileset.js`, `tileset.css` | Editor/generador de tilesets. |
 | `asset-pack.js`, `asset-pack.css` | Constructor de packs; beta y visible solo a administradores. |
 | `animation4.js`, `animation4.css` | Flujo público de animación. Los `animation*.js/css` anteriores son experimentos/histórico. |
@@ -165,6 +167,7 @@ No hay React/Vue ni build step: Nginx sirve módulos ES directamente. El router 
 | --- | --- | --- |
 | `/` | Landing/marketing, SEO y CTA del primer personaje. | `app.js`, `styles.css`, `landing-overrides.css` |
 | `/app` | Workspace autenticado. | `app-studio.js`, `app-studio.css` |
+| `/app?edit=<assetId>` | Editor manual de un asset privado. | `manual-editor.js`, `pixel-editor/` |
 | `/character-creator` | Funnel fuera de `/app`; acepta el brief de la landing. | `app.js`, `character-creator.js`, `creator*.css` |
 | `/asset-generator` | Generador de assets individuales. | `asset-generator.js` |
 | `/tileset-base-generator` | Generador de tilesets. | `tileset.js` |
@@ -180,7 +183,7 @@ En `/app`, `app-studio.js` monta el shell lateral y cambia vistas internas:
 - **My assets:** biblioteca privada.
 - **Projects:** agrupación simple de assets.
 - **Themes:** dirección visual persistente, tags, perspectiva, escala y hasta cinco referencias para planes elegibles.
-- **Editores:** Character, Asset Generator, Tileset y Animation. Asset Pack y Presets son beta/admin.
+- **Editores:** Character, Asset Generator, Manual Editor, Tileset y Animation. Asset Pack y Presets son beta/admin.
 - **Visor:** zoom y exportación; en assets estáticos permite saltar a Animation y asignar proyecto.
 
 ## Flujos importantes
@@ -228,6 +231,18 @@ Las referencias son assets del propio usuario y se añaden mediante `/api/themes
 - Exportación de animaciones: `/api/assets/:id/export/gif` y `/api/assets/:id/export/spritesheet`.
 
 La interfaz pública de animación es `animation4.js`. Las demás implementaciones de animación deben tratarse como experimentales hasta revisar proveedor, cobro y UI.
+
+### Editor manual de pixel art
+
+`pixel-editor/` contiene una compilación local de [Piskel](https://github.com/piskelapp/piskel), distribuida bajo Apache 2.0. `manual-editor.js` la monta en un `iframe` del mismo origen y solo acepta mensajes cuyo origen y `contentWindow` coinciden. Piskel conserva capas, frames y paletas en su documento serializado; el backend guarda además PNG game-ready y GIF cuando hay más de un frame.
+
+- Lectura: `GET /api/assets/:id/editor` y `GET /api/assets/:id/editor/revisions/:revisionId`.
+- Guardado: `POST /api/assets/:id/editor/revisions`; conserva las últimas 20 revisiones.
+- Derivado: `POST /api/assets/:id/editor/copies`; crea un hijo mediante `parent_asset_id`.
+- Upload inicial: `POST /api/editor/uploads`; admite PNG, JPG o WebP de hasta 10 MiB.
+- Seguridad: propiedad por sesión, CSRF en mutaciones, petición máxima de 32 MiB, documento máximo de 12 MiB, imágenes de 10 MiB, 1024×1024, 256 frames y 64 capas.
+
+Antes de desplegar cambios del editor hay que ejecutar un backup coherente de SQLite y `/data/assets`, y desplegar frontend y backend juntos.
 
 ### Stripe y créditos
 

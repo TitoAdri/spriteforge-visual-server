@@ -1,7 +1,7 @@
 import { processPixelGrid, quantizePalette, snapToGrid } from "/pixel-grid-core.js";
-import { characterCreatorMarkup, setupCharacterCreator } from "/character-creator.js?v=24";
-import { assetGeneratorMarkup, setupAssetGenerator } from "/asset-generator.js?v=8";
-import { appStudioMarkup, setupAppStudio } from "/app-studio.js?v=74";
+import { characterCreatorMarkup, setupCharacterCreator } from "/character-creator.js?v=25";
+import { assetGeneratorMarkup, setupAssetGenerator } from "/asset-generator.js?v=9";
+import { appStudioMarkup, setupAppStudio } from "/app-studio.js?v=77";
 import "/cost-display.js?v=6";
 import "/perspective-assets.js?v=1";
 
@@ -355,7 +355,7 @@ function render() {
   if (path === "/reset-password") { document.querySelector("#app").innerHTML = passwordResetMarkup(); setupPasswordReset(); return; }
   if (path === "/app") {
     const root = document.querySelector("#app"); root.innerHTML = `<main class="app-route-loading" aria-live="polite">Checking your secure workspace…</main>`;
-    fetch("/api/auth/me", { credentials: "same-origin", cache: "no-store" }).then((response) => response.json()).then((state) => { if (state?.user) { if (continuePendingCharacter()) return; root.innerHTML = appStudioMarkup(); const query = new URLSearchParams(window.location.search); setupAppStudio({ initialAssetId: query.get("asset") || "", initialAnimationAssetId: query.get("animate") || "" }); return; } history.replaceState({}, "", "/"); render(); openMarketingAuth("login"); }).catch(() => { history.replaceState({}, "", "/"); render(); openMarketingAuth("login"); });
+    fetch("/api/auth/me", { credentials: "same-origin", cache: "no-store" }).then((response) => response.json()).then((state) => { if (state?.user) { if (continuePendingCharacter()) return; root.innerHTML = appStudioMarkup(); const query = new URLSearchParams(window.location.search); setupAppStudio({ initialAssetId: query.get("asset") || "", initialAnimationAssetId: query.get("animate") || "", initialEditorAssetId: query.get("edit") || "" }); return; } history.replaceState({}, "", "/"); render(); openMarketingAuth("login"); }).catch(() => { history.replaceState({}, "", "/"); render(); openMarketingAuth("login"); });
     return;
   }
   document.querySelector("#app").innerHTML = legalRoutes[path]?.() || (path === "/pricing" ? pricing() : path === "/docs" ? docs() : path === "/verify-email" ? `<main class="verification-page"><section class="verification-card"><img src="/assets/spriteforge-logo.png" alt="SpriteForge" /><span class="eyebrow">SPRITEFORGE ACCOUNT</span><span class="verification-orb" aria-hidden="true">✦</span><h1>Email verification</h1><p id="verify-email-status" data-state="loading">Verifying your email securely…</p><a class="verification-cta" href="/app" data-route="/app">Open workspace <b>→</b></a><small>Secure verification · Credits are granted once only.</small></section></main>` : path === "/app" ? appStudioMarkup() : path === "/pixel-grid-detector" ? pixelDetector() : path === "/tileset-base-generator" ? tileset() : path === "/character-creator" ? `${nav()}${characterCreatorMarkup()}` : path === "/asset-generator" ? `${nav()}${assetGeneratorMarkup()}${footerNoDiscord()}` : home());
