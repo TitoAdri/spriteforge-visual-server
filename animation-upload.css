@@ -1,0 +1,18 @@
+.a4-step .a4-upload {
+  margin-left: auto;
+  flex: 0 0 auto;
+  border: 1px solid #8b6048;
+  border-radius: 7px;
+  background: #34251c;
+  color: #f8d2ba;
+  padding: 8px 11px;
+  font-size: 10px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.a4-step .a4-upload:hover {
+  border-color: #f1af83;
+  background: #513426;
+  color: #fff;
+}

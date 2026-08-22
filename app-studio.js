@@ -2,7 +2,7 @@ import { characterCreatorMarkup, setupCharacterCreator } from "/character-creato
 import { assetGeneratorMarkup, setupAssetGenerator } from "/asset-generator.js?v=10";
 import { assetPackMarkup, setupAssetPack } from "/asset-pack.js?v=5";
 import { tilesetMarkup, setupTileset } from "/tileset.js?v=5";
-import { animation4Markup, setupAnimation4 } from "/animation4.js?v=7";
+import { animation4Markup, setupAnimation4 } from "/animation4.js?v=8";
 import { manualEditorMarkup, setupManualEditor } from "/manual-editor.js?v=19";
 import { processPixelGrid, quantizePalette } from "/pixel-grid-core.js?v=2";
 
