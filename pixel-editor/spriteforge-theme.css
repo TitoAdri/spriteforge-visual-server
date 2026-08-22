@@ -14,7 +14,7 @@ html, body { min-width: 0; overflow: hidden; background: #10141a !important; col
 
 /* Left rail: frames and tools */
 .left-sticky-section.sticky-section { left: 12px !important; top: 12px !important; bottom: 12px !important; width: 60px; max-width: 60px !important; border: 1px solid #343e4b; border-radius: 10px; background: #1a2028; box-shadow: 0 12px 30px #0004; }
-.left-sticky-section .sticky-section-wrap { width: 100%; }.pen-size-container { margin: 8px auto 10px !important; width: 42px; border-bottom: 1px solid #343e4b; padding-bottom: 9px; }
+.left-sticky-section .sticky-section-wrap { width: 100%; }.pen-size-container { display: flex; flex-direction: column; align-items: center; box-sizing: border-box; margin: 10px auto 14px !important; width: 46px; border-bottom: 1px solid #343e4b; padding-bottom: 11px; }
 .pen-size-option { border-color: #667486 !important; background: #252e39 !important; }.pen-size-option.selected { border-color: #ef9653 !important; background: #c9672e !important; }
 .tools-wrapper, .options-wrapper, .palette-wrapper { float: none !important; width: 48px; margin-left: auto !important; margin-right: auto !important; }
 .tool-icon { width: 46px !important; height: 46px !important; margin: 2px 1px !important; border: 1px solid transparent; border-radius: 7px; background-color: #242c36 !important; transition: background .15s, border-color .15s, transform .15s; }
@@ -25,8 +25,8 @@ html, body { min-width: 0; overflow: hidden; background: #10141a !important; col
 #tools-container [data-tool-id="tool-pen"] { order: 1; }
 #tools-container [data-tool-id="tool-paint-bucket"] { order: 2; }
 #tools-container [data-tool-id="tool-eraser"] { order: 3; }
-#tools-container [data-tool-id="tool-colorpicker"] { order: 4; margin-bottom: 16px !important; position: relative; }
-#tools-container [data-tool-id="tool-colorpicker"]::after { content: ""; position: absolute; left: 6px; right: 6px; bottom: -10px; height: 1px; background: #394451; box-shadow: 0 1px #ffffff08; }
+#tools-container [data-tool-id="tool-colorpicker"] { order: 4; margin-bottom: 26px !important; position: relative; }
+#tools-container [data-tool-id="tool-colorpicker"]::after { content: ""; position: absolute; left: 6px; right: 6px; bottom: -15px; height: 1px; background: #394451; box-shadow: 0 1px #ffffff08; }
 #tools-container [data-tool-id="tool-vertical-mirror-pen"] { order: 5; }
 #tools-container [data-tool-id="tool-colorswap"] { order: 6; }
 #tools-container [data-tool-id="tool-stroke"] { order: 7; }
