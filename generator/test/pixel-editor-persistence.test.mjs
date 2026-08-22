@@ -98,9 +98,9 @@ test("save as new inherits asset metadata and isolates editor documents by owner
     assert.equal(row.normalization_json, '{"scale":2}');
     assert.equal(f.library.editorInfo({ user: f.owner }, copy.asset.id).revisions.length, 1);
 
-    assert.throws(() => f.library.editorInfo({ user: f.stranger }, f.assetId), (error) => error.status === 404);
-    await assert.rejects(f.library.saveEditorRevision({ user: f.stranger }, f.assetId, snapshot()), (error) => error.status === 404);
-    await assert.rejects(f.library.copyEditorAsset({ user: f.stranger }, f.assetId, { name: "Stolen", ...snapshot() }), (error) => error.status === 404);
+    assert.throws(() => f.library.editorInfo({ user: f.stranger }, f.assetId), (error) => error.status === 403 && error.code === "editor_admin_only");
+    await assert.rejects(f.library.saveEditorRevision({ user: f.stranger }, f.assetId, snapshot()), (error) => error.status === 403 && error.code === "editor_admin_only");
+    await assert.rejects(f.library.copyEditorAsset({ user: f.stranger }, f.assetId, { name: "Stolen", ...snapshot() }), (error) => error.status === 403 && error.code === "editor_admin_only");
   } finally { await f.close(); }
 });
 
@@ -122,5 +122,9 @@ test("manual uploads validate real signatures and editor snapshots reject forged
     await assert.rejects(f.library.saveEditorRevision({ user: f.owner }, f.assetId, { ...snapshot(), width: 1025 }), (error) => error.status === 400);
     await assert.rejects(f.library.saveEditorRevision({ user: f.owner }, f.assetId, snapshot({ width: 2 })), (error) => error.code === "invalid_editor_image_metadata");
     await assert.rejects(f.library.saveEditorRevision({ user: f.owner }, f.assetId, { ...snapshot(), gameReadyBase64: Buffer.from("fake png data").toString("base64") }), (error) => error.status === 415);
+    const unauthorized = Readable.from([PNG]);
+    unauthorized.user = f.stranger;
+    unauthorized.headers = request.headers;
+    await assert.rejects(f.library.uploadEditorAsset(unauthorized), (error) => error.status === 403 && error.code === "editor_admin_only");
   } finally { await f.close(); }
 });

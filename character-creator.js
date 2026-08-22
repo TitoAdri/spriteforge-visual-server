@@ -8,7 +8,7 @@ const STYLE_TAGS = [
   "farm sim", "roguelike", "metroidvania", "soulslike", "jrpg", "adventure", "platformer", "arcade"
 ];
 
-export const characterCreatorMarkup = ({ embedded = false, theme = null, themes = [] } = {}) => {
+export const characterCreatorMarkup = ({ embedded = false, theme = null, themes = [], isEditorAdmin = false } = {}) => {
   const tag = embedded ? "section" : "main";
   return `
   <${tag} class="creator-page${embedded ? " creator-page-embedded" : ""}">
@@ -32,7 +32,7 @@ export const characterCreatorMarkup = ({ embedded = false, theme = null, themes 
           <div class="creator-result-head"><div><span>GENERATED → NORMALIZED</span><h2 id="creator-result-title">Character sprite</h2></div><div class="creator-result-head-actions"><button id="creator-download" type="button">Download PNG</button></div></div>
           <div class="creator-compare"><figure><figcaption>AI original <small>chroma background</small></figcaption><canvas id="creator-original"></canvas></figure><figure><figcaption>Game-ready <small id="creator-output-meta"></small></figcaption><canvas id="creator-output"></canvas></figure></div>
           <div class="creator-tools"><div class="creator-tool-row"><span>Colors</span><div>${["Original", ...PALETTE_SIZES].map((value) => `<button class="chip creator-palette${value === "Original" ? " active" : ""}" data-colors="${value === "Original" ? "original" : value}" type="button">${value}</button>`).join("")}</div></div><div class="creator-tool-row"><span>Grid</span><div>${["Auto", ...GRID_SIZES].map((value) => `<button class="chip creator-grid-size${value === "Auto" ? " active" : ""}" data-grid-size="${value === "Auto" ? "auto" : value}" type="button">${value === "Auto" ? "Auto" : `${value}×${value}`}</button>`).join("")}</div></div></div>
-          <div class="creator-result-actions"><span id="creator-result-note">Transparent PNG · centered on feet</span><div class="creator-result-next-actions"><button id="creator-edit" type="button">Edit pixel art →</button><button id="creator-view-app" type="button">View in app →</button><button id="creator-animate" type="button">Animate →</button></div></div>
+          <div class="creator-result-actions"><span id="creator-result-note">Transparent PNG · centered on feet</span><div class="creator-result-next-actions">${isEditorAdmin ? '<button id="creator-edit" type="button">Edit pixel art →</button>' : ""}<button id="creator-view-app" type="button">View in app →</button><button id="creator-animate" type="button">Animate →</button></div></div>
         </div>
       </section>
     </section>
@@ -164,7 +164,7 @@ function cookie(name) {
   return document.cookie.split(";").map((entry) => entry.trim()).find((entry) => entry.startsWith(`${name}=`))?.slice(name.length + 1) || "";
 }
 
-export function setupCharacterCreator({ onSaved, theme = null, themes = [], onThemePicker } = {}) {
+export function setupCharacterCreator({ onSaved, theme = null, themes = [], isEditorAdmin = false, onThemePicker } = {}) {
   const root = document.querySelector("#character-creator");
   if (!root) return;
   const form = root.querySelector("#creator-form");
@@ -266,7 +266,7 @@ export function setupCharacterCreator({ onSaved, theme = null, themes = [], onTh
     if (!savedAssetId) return;
     window.location.assign(`/app?asset=${encodeURIComponent(savedAssetId)}`);
   });
-  root.querySelector("#creator-edit").addEventListener("click", () => {
+  root.querySelector("#creator-edit")?.addEventListener("click", () => {
     if (!savedAssetId) return;
     window.location.assign(`/app?edit=${encodeURIComponent(savedAssetId)}`);
   });

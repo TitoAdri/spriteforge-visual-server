@@ -1,0 +1,14 @@
+/* SpriteForge shell theme for the vendored Piskel editor.
+ * This file only overrides presentation; Piskel's tools and shortcuts remain intact.
+ */
+html, body { background: #10141a !important; color: #dce3ea; }
+.fake-piskelapp-header { display: none !important; }
+#main-wrapper { margin-top: 0 !important; }
+.main-wrapper { top: 0 !important; bottom: 0 !important; background: #10141a !important; }
+.column-wrapper, .left-column, .right-column, .tool-section, .layers-section, .palette-section, .preview-container { background-color: #1a2028 !important; }
+.left-column, .right-column, .tool-section, .layers-section, .palette-section { border-color: #3a4552 !important; }
+.tool-icon, .settings-item, .layer-item, .frames-list .frame, .layers-list-item { border-color: #46515f !important; background-color: #242c36 !important; }
+.tool-icon:hover, .tool-icon.selected, .selected-tool, .layers-list-item.selected, .frames-list .frame.selected { border-color: #de8847 !important; background-color: #33404d !important; }
+.piskel-name, .current-frame-number, .layer-name, .fps-label { color: #f1a25d !important; }
+.button, button, .settings-icon { border-color: #4b5766 !important; color: #dce3ea !important; }
+.button:hover, button:hover, .settings-icon:hover { border-color: #de8847 !important; }
