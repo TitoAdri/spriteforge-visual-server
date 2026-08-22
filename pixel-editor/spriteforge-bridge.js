@@ -26,9 +26,12 @@
     return String(dataUrl || "").slice(String(dataUrl || "").indexOf(",") + 1);
   }
 
-  function setPiskel(piskel, markDirty) {
+  function setPiskel(piskel, markDirty, fps) {
     suppressDirty = true;
     pskl.app.piskelController.setPiskel(piskel);
+    if (Number.isFinite(Number(fps)) && Number(fps) >= 1 && typeof pskl.app.piskelController.setFPS === "function") {
+      pskl.app.piskelController.setFPS(Math.max(1, Math.min(60, Math.round(Number(fps)))));
+    }
     window.setTimeout(function () {
       restyleCanvasSurface();
       suppressDirty = false;
@@ -48,7 +51,7 @@
     }
   }
 
-  function loadImage(url, name) {
+  function loadImage(url, name, fps) {
     var image = new Image();
     image.onload = function () {
       if (image.naturalWidth > 1024 || image.naturalHeight > 1024) {
@@ -64,7 +67,7 @@
         frameOffsetX: 0,
         frameOffsetY: 0
       }, function (piskel) {
-        setPiskel(piskel, false);
+        setPiskel(piskel, false, fps);
         send("spriteforge:loaded");
       });
     };
@@ -136,7 +139,7 @@
     var message = event.data;
     if (message.type === "spriteforge:init") {
       initialized = true;
-      if (message.document) loadDocument(message.document, false); else if (message.sourceUrl) loadImage(message.sourceUrl, message.name);
+      if (message.document) loadDocument(message.document, false); else if (message.sourceUrl) loadImage(message.sourceUrl, message.name, message.fps);
     } else if (message.type === "spriteforge:load-document") loadDocument(message.document, true);
     else if (message.type === "spriteforge:request-snapshot") snapshot(message.requestId);
     else if (message.type === "spriteforge:command") {

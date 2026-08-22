@@ -1,6 +1,7 @@
 import crypto from "node:crypto";
 import fs from "node:fs/promises";
 import path from "node:path";
+import sharp from "sharp";
 import { AuthError } from "./auth.mjs";
 
 const MAX_IMAGE_BYTES = 10 * 1024 * 1024;
@@ -323,6 +324,36 @@ export function createLibrary(auth) {
   const animationPublic = (clip, frames, sourceAsset) => ({ ...clip, settings: parseJson(clip.settings_json), styleTags: parseJson(clip.style_tags_json), frames: frames.map(animationFramePublic), sourceAsset, settings_json: undefined, style_tags_json: undefined });
   const pixelJobPublic = (job) => ({ id: job.id, clipId: job.clip_id, status: job.status, progress: Number(job.progress || 0), model: job.model, assetId: job.asset_id || null, error: job.error_code || null, cancelRequested: Boolean(job.cancel_requested_at), createdAt: job.created_at, updatedAt: job.updated_at });
 
+  // Piskel imports animated GIFs as editable frame sequences. Generated
+  // animations may be WebP, so expose a private conversion rather than a
+  // permanent public duplicate of the original binary.
+  const animationImportSource = async (asset) => {
+    if (asset.kind !== "animation") throw new AuthError(400, "not_animation", "This asset is not an animation");
+    const file = db.prepare("SELECT * FROM asset_files WHERE asset_id=? AND variant='animation'").get(asset.id);
+    if (!file) throw new AuthError(404, "not_found", "Animation file not found");
+    if (Number(file.byte_size) > 20 * 1024 * 1024) throw new AuthError(413, "animation_too_large", "Animation is too large to edit");
+    let bytes;
+    try { bytes = await fs.readFile(path.join(root, file.storage_key)); } catch { throw new AuthError(404, "not_found", "Animation file not found"); }
+    if (!animationType(bytes, file.mime_type)) throw new AuthError(415, "invalid_animation", "Animation file is invalid");
+    let metadata;
+    try { metadata = await sharp(bytes, { animated: true, failOn: "none" }).metadata(); } catch { throw new AuthError(415, "invalid_animation", "Animation file is invalid"); }
+    const frameCount = Math.max(1, Number(metadata.pages || 1));
+    const width = Number(metadata.width || 0);
+    const height = Math.floor(Number(metadata.pageHeight || metadata.height || 0));
+    if (!width || !height || width > 1024 || height > 1024 || frameCount > 256) throw new AuthError(400, "animation_limits_exceeded", "Animation exceeds editor limits");
+    const rawDelays = Array.isArray(metadata.delay) ? metadata.delay : [];
+    const sourceDelays = Array.from({ length: frameCount }, (_, index) => Math.max(20, Math.min(1000, Number(rawDelays[index] || rawDelays[0] || 100))));
+    const averageDelay = sourceDelays.reduce((sum, delay) => sum + delay, 0) / sourceDelays.length;
+    const fps = Math.max(1, Math.min(60, Math.round(1000 / averageDelay)));
+    const delays = Array(frameCount).fill(Math.max(20, Math.round(1000 / fps)));
+    return { file, bytes, metadata, width, height, frameCount, delays, fps };
+  };
+
+  const editorAnimationImport = async (asset) => {
+    const source = await animationImportSource(asset);
+    return { url: `/api/assets/${asset.id}/editor/import`, mimeType: "image/gif", width: source.width, height: source.height, frameCount: source.frameCount, fps: source.fps };
+  };
+
   const list = (request) => {
     const user = session(request);
     const defaultThemeId = db.prepare("SELECT default_theme_id FROM user_theme_preferences WHERE user_id = ?").get(user.id)?.default_theme_id || null;
@@ -622,12 +653,24 @@ export function createLibrary(auth) {
     const user = session(request); if (!FILE_VARIANTS.has(variant)) throw new AuthError(404, "not_found", "File not found"); const asset = requireOwned("assets", assetId, user.id); const file = db.prepare("SELECT * FROM asset_files WHERE asset_id = ? AND variant = ?").get(asset.id, variant); if (!file) throw new AuthError(404, "not_found", "File not found"); const bytes = await fs.readFile(path.join(root, file.storage_key)); return { bytes, mimeType: file.mime_type };
   };
   const revisionPublic = (revision) => ({ id: revision.id, number: revision.revision_number, width: revision.width, height: revision.height, frameCount: revision.frame_count, documentByteSize: revision.document_byte_size, gameReadyByteSize: revision.game_ready_byte_size, animationByteSize: revision.animation_byte_size || null, createdAt: revision.created_at });
-  const editorInfo = (request, assetId) => {
+  const editorInfo = async (request, assetId) => {
     const user = editorAdmin(request); const asset = requireOwned("assets", assetId, user.id);
     const files = db.prepare("SELECT variant,mime_type,byte_size FROM asset_files WHERE asset_id=?").all(asset.id);
     const fileMap = {}; for (const file of files) fileMap[file.variant] = { mimeType: file.mime_type, byteSize: file.byte_size, url: `/api/assets/${asset.id}/files/${file.variant}` };
     const revisions = db.prepare("SELECT * FROM asset_editor_revisions WHERE asset_id=? ORDER BY revision_number DESC LIMIT ?").all(asset.id, MAX_EDITOR_REVISIONS).map(revisionPublic);
-    return { asset: { ...assetPublic(asset), files: fileMap }, currentRevision: revisions[0] || null, revisions };
+    const currentRevision = revisions[0] || null;
+    const animationImport = asset.kind === "animation" && !currentRevision ? await editorAnimationImport(asset) : null;
+    return { asset: { ...assetPublic(asset), files: fileMap }, mode: asset.kind === "animation" ? "animation" : "image", animationImport, currentRevision, revisions };
+  };
+  const fetchEditorAnimationImport = async (request, assetId) => {
+    const user = editorAdmin(request); const asset = requireOwned("assets", assetId, user.id); const source = await animationImportSource(asset);
+    let gif;
+    try {
+      const raw = await sharp(source.bytes, { animated: true, failOn: "none" }).ensureAlpha().raw().toBuffer();
+      gif = await sharp(raw, { raw: { width: source.width, height: source.height * source.frameCount, channels: 4, pageHeight: source.height } }).gif({ loop: Number(source.metadata.loop || 0), delay: source.delays, effort: 6 }).toBuffer();
+    } catch { throw new AuthError(415, "invalid_animation", "Animation file is invalid"); }
+    if (gif.length > MAX_IMAGE_BYTES || !gifInfo(gif)) throw new AuthError(413, "animation_too_large", "Animation is too large to edit");
+    return { bytes: gif, mimeType: "image/gif" };
   };
   const fetchEditorRevision = async (request, assetId, revisionId) => {
     const user = editorAdmin(request); const asset = requireOwned("assets", assetId, user.id);
@@ -737,5 +780,5 @@ export function createLibrary(auth) {
   };
   const failGenerationJob = (user, job, errorCode) => db.prepare("UPDATE generation_jobs SET status = 'failed', error_code = ?, updated_at = ? WHERE id = ? AND user_id = ?").run(String(errorCode || "generation_failed").slice(0, 100), now(), job.id, user.id);
 
-  return { list, createProject, assignAssetProject, createTheme, updateTheme, setDefaultTheme, addThemeReference, resolveTheme, createCollection, createAssetPack, reservePackItem, retryPackItem, completePackItem, failPackItem, createTileset, reserveTilesetTile, retryTilesetTile, completeTilesetTile, failTilesetTile, createAnimationClip, deleteAnimationClip, reserveAnimationFrame, retryAnimationFrame, regenerateAnimationFrame, updateAnimationGeometry, regenerateAnimationClip, completeAnimationFrame, failAnimationFrame, startAnimationSheet, failAnimationSheet, attachAnimationFrame, setAnimationKeyframe, clearAnimationKeyframe, insertAnimationFrame, deleteAnimationFrame, retakeAnimationRange, createPreset, createAsset, uploadFile, fetchFile, editorInfo, fetchEditorRevision, saveEditorRevision, copyEditorAsset, uploadEditorAsset, saveAnimationOutput, createPixelEngineJob, getPixelEngineJob, updatePixelEngineJob, linkAnimationOutput, createGenerationJob, saveGenerationResult, failGenerationJob };
+  return { list, createProject, assignAssetProject, createTheme, updateTheme, setDefaultTheme, addThemeReference, resolveTheme, createCollection, createAssetPack, reservePackItem, retryPackItem, completePackItem, failPackItem, createTileset, reserveTilesetTile, retryTilesetTile, completeTilesetTile, failTilesetTile, createAnimationClip, deleteAnimationClip, reserveAnimationFrame, retryAnimationFrame, regenerateAnimationFrame, updateAnimationGeometry, regenerateAnimationClip, completeAnimationFrame, failAnimationFrame, startAnimationSheet, failAnimationSheet, attachAnimationFrame, setAnimationKeyframe, clearAnimationKeyframe, insertAnimationFrame, deleteAnimationFrame, retakeAnimationRange, createPreset, createAsset, uploadFile, fetchFile, editorInfo, fetchEditorAnimationImport, fetchEditorRevision, saveEditorRevision, copyEditorAsset, uploadEditorAsset, saveAnimationOutput, createPixelEngineJob, getPixelEngineJob, updatePixelEngineJob, linkAnimationOutput, createGenerationJob, saveGenerationResult, failGenerationJob };
 }
