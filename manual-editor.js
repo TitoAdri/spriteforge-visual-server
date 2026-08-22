@@ -17,7 +17,7 @@ export const manualEditorMarkup = ({ assets = [], assetId = "" } = {}) => `<sect
   </header>
   <div class="manual-editor-history" data-editor-history hidden><header><b>Revision history</b><button data-editor-history-close type="button">×</button></header><div data-editor-history-list><p>No saved revisions yet.</p></div></div>
   <div class="manual-editor-mobile"><h2>Editor available on desktop</h2><p>Open SpriteForge on a screen at least 1024 px wide to use the full manual editor.</p></div>
-  <div class="manual-editor-stage" data-editor-stage><div class="manual-editor-loading" data-editor-loading><span></span><b>${assetId ? "Loading your editable asset…" : "Choose an asset to start editing"}</b></div><iframe data-editor-frame src="/pixel-editor/index.html?v=10" title="SpriteForge pixel art editor"></iframe></div>
+  <div class="manual-editor-stage" data-editor-stage><div class="manual-editor-loading" data-editor-loading><span></span><b>${assetId ? "Loading your editable asset…" : "Choose an asset to start editing"}</b></div><iframe data-editor-frame src="/pixel-editor/index.html?v=11" title="SpriteForge pixel art editor"></iframe></div>
   <div class="manual-editor-picker" data-editor-picker ${assetId ? "hidden" : ""}>${chooser(assets)}</div>
 </section>`;
 
