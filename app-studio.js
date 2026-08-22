@@ -1,9 +1,9 @@
-import { characterCreatorMarkup, setupCharacterCreator } from "/character-creator.js?v=25";
-import { assetGeneratorMarkup, setupAssetGenerator } from "/asset-generator.js?v=9";
+import { characterCreatorMarkup, setupCharacterCreator } from "/character-creator.js?v=26";
+import { assetGeneratorMarkup, setupAssetGenerator } from "/asset-generator.js?v=10";
 import { assetPackMarkup, setupAssetPack } from "/asset-pack.js?v=5";
 import { tilesetMarkup, setupTileset } from "/tileset.js?v=5";
 import { animation4Markup, setupAnimation4 } from "/animation4.js?v=7";
-import { manualEditorMarkup, setupManualEditor } from "/manual-editor.js?v=18";
+import { manualEditorMarkup, setupManualEditor } from "/manual-editor.js?v=19";
 
 const asset = (path) => `/assets/${path}`;
 const readableName = (value) => {
@@ -69,7 +69,7 @@ const studioSidebar = () => `<aside class="studio-sidebar">
     <button data-studio-tool="Asset Generator">${icon("✧")}<span>Asset generator</span></button>
     <button data-studio-tool="Tileset">${icon("▤")}<span>Tileset</span></button>
     <button data-studio-tool="Animation">${icon("▷")}<span>Animation</span></button>
-    <button data-studio-tool="Manual Editor" data-admin-feature>${icon("✎")}<span>Manual editor</span></button>
+    <button data-studio-tool="Manual Editor">${icon("✎")}<span>Manual editor</span></button>
   </nav>
   <div class="studio-sidebar-bottom"><a href="/" data-route="/">${icon("←")}<span>Marketing site</span></a><button class="studio-user" data-auth-action="login" type="button"><span>→</span><b>Sign in</b>${icon("⌄")}</button></div>
 </aside>`;
@@ -91,7 +91,7 @@ const homeView = () => `<section class="studio-view studio-home-view">
 </section>`;
 
 const activeTheme = () => workspaceThemes.find((theme) => theme.id === activeThemeId) || null;
-const characterView = (isEditorAdmin = false) => { const theme = activeTheme(); return `<section class="studio-view studio-character-view"><header class="studio-topbar"><div><span class="studio-kicker">CREATE · CHARACTER${theme ? ` · THEME: ${theme.name.toUpperCase()}` : ""}</span><h1>Character creator</h1><p>Create a character, normalize it to a game-ready sprite, then save it in your private library.</p></div><button data-studio-view="assets" class="studio-upload" type="button">View library →</button></header>${characterCreatorMarkup({ embedded: true, theme, themes: workspaceThemes, isEditorAdmin })}</section>`; };
+const characterView = () => { const theme = activeTheme(); return `<section class="studio-view studio-character-view"><header class="studio-topbar"><div><span class="studio-kicker">CREATE · CHARACTER${theme ? ` · THEME: ${theme.name.toUpperCase()}` : ""}</span><h1>Character creator</h1><p>Create a character, normalize it to a game-ready sprite, then save it in your private library.</p></div><button data-studio-view="assets" class="studio-upload" type="button">View library →</button></header>${characterCreatorMarkup({ embedded: true, theme, themes: workspaceThemes })}</section>`; };
 const assetGeneratorView = () => { const theme = activeTheme(); return `<section class="studio-view studio-asset-generator-view"><header class="studio-topbar"><div><span class="studio-kicker">CREATE · ASSET GENERATOR${theme ? ` · THEME: ${theme.name.toUpperCase()}` : ""}</span><h1>Asset generator</h1><p>Generate standalone game objects, buildings, scenery and UI icons with task-specific production rules.</p></div><button data-studio-view="assets" class="studio-upload" type="button">View library →</button></header>${assetGeneratorMarkup({ embedded: true, theme })}</section>`; };
 const assetPackView = () => assetPackMarkup({ theme: activeTheme(), packs: assetPacks });
 const tilesetView = () => tilesetMarkup({ theme: activeTheme(), tilesets });
@@ -135,7 +135,6 @@ export function setupAppStudio({ initialAssetId = "", initialAnimationAssetId = 
   let activeManualEditor = null;
   let selectedReferences = [];
   let authState = { user: null, available: false, httpsRequired: true };
-  const isEditorAdmin = () => authState.user?.role === "admin";
   // Keep a Home composer request alive while the authentication modal is open.
   // This lets a visitor choose a generator and enter a prompt before signing in.
   let pendingComposerIntent = null;
@@ -169,16 +168,15 @@ export function setupAppStudio({ initialAssetId = "", initialAnimationAssetId = 
     if (view === "manual-editor" && next !== "manual-editor" && activeManualEditor?.hasUnsavedChanges() && !window.confirm("Discard unsaved editor changes?")) return;
     activeManualEditor?.destroy(); activeManualEditor = null;
     if ((next === "presets" || next === "asset-pack") && !authState.user?.creditExempt) { notify("This beta workspace is available to administrators only."); next = "home"; }
-    if (next === "manual-editor" && !isEditorAdmin()) { notify("The manual pixel editor is currently available to administrators only."); editorAssetId = ""; history.replaceState({}, "", "/app"); next = "assets"; }
     view = next;
     if (syncUrl) syncViewUrl(view);
-    content.innerHTML = next === "assets" ? assetsView() : next === "projects" ? projectsView() : next === "themes" ? liveThemesView() : next === "presets" ? presetsView() : next === "settings" ? settingsView(authState.user) : next === "support" ? supportView() : next === "character" ? characterView(isEditorAdmin()) : next === "asset-generator" ? assetGeneratorView() : next === "asset-pack" ? assetPackView() : next === "tileset" ? tilesetView() : next === "animation" ? animationView() : next === "manual-editor" ? manualEditorView(editorAssetId) : homeView();
+    content.innerHTML = next === "assets" ? assetsView() : next === "projects" ? projectsView() : next === "themes" ? liveThemesView() : next === "presets" ? presetsView() : next === "settings" ? settingsView(authState.user) : next === "support" ? supportView() : next === "character" ? characterView() : next === "asset-generator" ? assetGeneratorView() : next === "asset-pack" ? assetPackView() : next === "tileset" ? tilesetView() : next === "animation" ? animationView() : next === "manual-editor" ? manualEditorView(editorAssetId) : homeView();
     root.querySelectorAll("[data-studio-view]").forEach((button) => button.classList.toggle("is-active", button.dataset.studioView === view));
     const activeTool = ({ character: "Character", "asset-generator": "Asset Generator", "asset-pack": "Asset Pack", tileset: "Tileset", animation: "Animation", "manual-editor": "Manual Editor" })[view] || "";
     root.querySelectorAll("[data-studio-tool]").forEach((button) => button.classList.toggle("is-active", button.dataset.studioTool === activeTool));
     wireView();
-    if (next === "character") setupCharacterCreator({ theme: activeTheme(), themes: workspaceThemes, isEditorAdmin: isEditorAdmin(), onThemePicker: () => openThemePicker("character"), onSaved: async () => { await loadLibrary(); notify("Character saved to your private library."); } });
-    if (next === "asset-generator") setupAssetGenerator({ theme: activeTheme(), isEditorAdmin: isEditorAdmin(), onSaved: async () => { await loadLibrary(); notify("Asset saved to your private library."); } });
+    if (next === "character") setupCharacterCreator({ theme: activeTheme(), themes: workspaceThemes, onThemePicker: () => openThemePicker("character"), onSaved: async () => { await loadLibrary(); notify("Character saved to your private library."); } });
+    if (next === "asset-generator") setupAssetGenerator({ theme: activeTheme(), onSaved: async () => { await loadLibrary(); notify("Asset saved to your private library."); } });
     if (next === "asset-pack") setupAssetPack({ theme: activeTheme(), packs: assetPacks, onChanged: loadLibrary, onNotice: notify });
     if (next === "tileset") setupTileset({ theme: activeTheme(), tilesets, onChanged: loadLibrary, onNotice: notify });
     if (next === "animation") setupAnimation4({ theme: activeTheme(), assets, jobs: pixelEngineJobs, initialAssetId: animationSourceId, onChanged: loadLibrary, onNotice: notify });
@@ -192,11 +190,6 @@ export function setupAppStudio({ initialAssetId = "", initialAnimationAssetId = 
     if (!button) return;
     root.querySelectorAll("[data-beta-feature]").forEach((element) => {
       const enabled = Boolean(authState.user?.creditExempt);
-      element.hidden = !enabled;
-      element.setAttribute("aria-hidden", enabled ? "false" : "true");
-    });
-    root.querySelectorAll("[data-admin-feature]").forEach((element) => {
-      const enabled = isEditorAdmin();
       element.hidden = !enabled;
       element.setAttribute("aria-hidden", enabled ? "false" : "true");
     });
@@ -369,14 +362,12 @@ export function setupAppStudio({ initialAssetId = "", initialAnimationAssetId = 
       toolbar.append(zoomGroup);
       const toolbarActions = document.createElement("div");
       toolbarActions.className = "studio-viewer-toolbar-actions";
-      if (isEditorAdmin()) {
-        const toolbarEditButton = document.createElement("button");
-        toolbarEditButton.className = "studio-viewer-edit studio-viewer-toolbar-edit";
-        toolbarEditButton.type = "button";
-        toolbarEditButton.textContent = isAnimation ? "Edit animation" : "Edit pixel art";
-        toolbarEditButton.addEventListener("click", openPixelEditor);
-        toolbarActions.append(toolbarEditButton);
-      }
+      const toolbarEditButton = document.createElement("button");
+      toolbarEditButton.className = "studio-viewer-edit studio-viewer-toolbar-edit";
+      toolbarEditButton.type = "button";
+      toolbarEditButton.textContent = isAnimation ? "Edit animation" : "Edit pixel art";
+      toolbarEditButton.addEventListener("click", openPixelEditor);
+      toolbarActions.append(toolbarEditButton);
       if (downloadControl) {
         downloadControl.classList.add("studio-viewer-download");
         toolbarActions.append(downloadControl);
