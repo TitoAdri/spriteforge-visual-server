@@ -1,8 +1,9 @@
-import { characterCreatorMarkup, setupCharacterCreator } from "/character-creator.js?v=24";
-import { assetGeneratorMarkup, setupAssetGenerator } from "/asset-generator.js?v=8";
+import { characterCreatorMarkup, setupCharacterCreator } from "/character-creator.js?v=25";
+import { assetGeneratorMarkup, setupAssetGenerator } from "/asset-generator.js?v=9";
 import { assetPackMarkup, setupAssetPack } from "/asset-pack.js?v=5";
 import { tilesetMarkup, setupTileset } from "/tileset.js?v=5";
 import { animation4Markup, setupAnimation4 } from "/animation4.js?v=7";
+import { manualEditorMarkup, setupManualEditor } from "/manual-editor.js?v=1";
 
 const asset = (path) => `/assets/${path}`;
 const readableName = (value) => {
@@ -68,6 +69,7 @@ const studioSidebar = () => `<aside class="studio-sidebar">
     <button data-studio-tool="Asset Generator">${icon("✧")}<span>Asset generator</span></button>
     <button data-studio-tool="Tileset">${icon("▤")}<span>Tileset</span></button>
     <button data-studio-tool="Animation">${icon("▷")}<span>Animation</span></button>
+    <button data-studio-tool="Manual Editor">${icon("✎")}<span>Manual editor</span></button>
   </nav>
   <div class="studio-sidebar-bottom"><a href="/" data-route="/">${icon("←")}<span>Marketing site</span></a><button class="studio-user" data-auth-action="login" type="button"><span>→</span><b>Sign in</b>${icon("⌄")}</button></div>
 </aside>`;
@@ -94,6 +96,7 @@ const assetGeneratorView = () => { const theme = activeTheme(); return `<section
 const assetPackView = () => assetPackMarkup({ theme: activeTheme(), packs: assetPacks });
 const tilesetView = () => tilesetMarkup({ theme: activeTheme(), tilesets });
 const animationView = () => animation4Markup({ theme: activeTheme(), assets, animations, jobs: pixelEngineJobs });
+const manualEditorView = (assetId = "") => manualEditorMarkup({ assets, assetId });
 
 const liveThemesView = () => { const theme = activeTheme() || workspaceThemes[0]; return `<section class="studio-view"><header class="studio-topbar"><div><span class="studio-kicker">PERSISTENT ART DIRECTION</span><h1>Themes</h1><p>Reusable visual direction. Tags are available to every user; image references are premium.</p></div><button class="studio-upload" data-theme-create type="button">+ New theme</button></header>${workspaceThemes.length ? `<div class="studio-theme-workbench"><section class="studio-theme-list">${workspaceThemes.map((item) => `<button data-theme-select="${item.id}" class="${item.id === theme?.id ? "active" : ""}"><i></i><span><b>${item.name}${item.isDefault ? `<mark>Default</mark>` : ""}</b><small>${item.references.length}/5 premium references · ${item.styleTags.join(", ") || "no tags"}</small></span><em>v${item.version}</em></button>`).join("")}</section><section class="studio-theme-detail"><div class="studio-theme-detail-title"><div><span class="studio-kicker">${theme.isDefault ? "DEFAULT CREATOR THEME" : "THEME"} · VERSION ${theme.version}</span><h2>${theme.name}</h2><p>${theme.direction || "No direction yet."}</p></div><button data-theme-edit="${theme.id}" type="button">Edit theme</button></div><div class="studio-theme-rules"><article><span>STYLE TAGS</span><p>${theme.styleTags.map((tag) => `<b>${tag}</b>`).join("") || "No tags"}</p></article><article><span>PIXEL RULES</span><p>${theme.settings.pixelScale || "Medium pixels"} · ${theme.settings.view || "left 3/4"}</p></article><article><span>STYLE REFERENCES</span><p>${theme.references.length}/5 · Premium</p></article><article><span>USE IN CREATOR</span><button class="studio-default-theme ${theme.isDefault ? "active" : ""}" data-theme-default="${theme.id}" type="button" aria-pressed="${theme.isDefault}">${theme.isDefault ? "✓ Default theme" : "Set as default"}</button><small>${theme.isDefault ? "Applied automatically when Character Creator opens." : "Make this the automatic starting theme."}</small></article></div><div class="studio-theme-reference"><span class="studio-kicker">STYLE REFERENCES · PREMIUM</span><div>${theme.references.length ? theme.references.map((ref) => `<span class="checker"><img src="${ref.url || asset("showcase/avatars/outlined/tinyslime24.png")}" alt="" /></span>`).join("") : `<p><b>No reference images</b><small>Add up to five approved assets for stronger visual consistency.</small></p>`}<button data-theme-reference="${theme.id}" type="button">Add reference</button></div></div></section></div>` : `<section class="studio-theme-empty"><div class="studio-theme-empty-orb">✦</div><span class="studio-kicker">YOUR FIRST ART DIRECTION</span><h2>Give every asset a shared visual language.</h2><p>Start with a few style tags and a short description. You can add premium visual references later for stronger consistency.</p><button data-theme-create type="button">Create your first theme →</button><small>Examples: Cozy farming RPG · Dark dungeon crawler · Handheld retro</small></section>`}</section>`; };
 
@@ -119,13 +122,15 @@ const studioShell = () => `<div class="studio-shell">${studioSidebar()}<main cla
 
 export const appStudioMarkup = () => studioShell();
 
-export function setupAppStudio({ initialAssetId = "", initialAnimationAssetId = "" } = {}) {
+export function setupAppStudio({ initialAssetId = "", initialAnimationAssetId = "", initialEditorAssetId = "" } = {}) {
   const root = document.querySelector(".studio-shell");
   const content = root.querySelector("#studio-content");
   const modalRoot = root.querySelector(".studio-modal-root");
   const toast = root.querySelector(".studio-toast");
   let view = "home";
   let animationSourceId = initialAnimationAssetId;
+  let editorAssetId = initialEditorAssetId;
+  let activeManualEditor = null;
   let selectedReferences = [];
   let authState = { user: null, available: false, httpsRequired: true };
   // Keep a Home composer request alive while the authentication modal is open.
@@ -150,11 +155,13 @@ export function setupAppStudio({ initialAssetId = "", initialAnimationAssetId = 
     field.focus();
   };
   const setView = (next, promptText = "") => {
+    if (view === "manual-editor" && next !== "manual-editor" && activeManualEditor?.hasUnsavedChanges() && !window.confirm("Discard unsaved editor changes?")) return;
+    activeManualEditor?.destroy(); activeManualEditor = null;
     if ((next === "presets" || next === "asset-pack") && !authState.user?.creditExempt) { notify("This beta workspace is available to administrators only."); next = "home"; }
     view = next;
-    content.innerHTML = next === "assets" ? assetsView() : next === "projects" ? projectsView() : next === "themes" ? liveThemesView() : next === "presets" ? presetsView() : next === "settings" ? settingsView(authState.user) : next === "support" ? supportView() : next === "character" ? characterView() : next === "asset-generator" ? assetGeneratorView() : next === "asset-pack" ? assetPackView() : next === "tileset" ? tilesetView() : next === "animation" ? animationView() : homeView();
+    content.innerHTML = next === "assets" ? assetsView() : next === "projects" ? projectsView() : next === "themes" ? liveThemesView() : next === "presets" ? presetsView() : next === "settings" ? settingsView(authState.user) : next === "support" ? supportView() : next === "character" ? characterView() : next === "asset-generator" ? assetGeneratorView() : next === "asset-pack" ? assetPackView() : next === "tileset" ? tilesetView() : next === "animation" ? animationView() : next === "manual-editor" ? manualEditorView(editorAssetId) : homeView();
     root.querySelectorAll("[data-studio-view]").forEach((button) => button.classList.toggle("is-active", button.dataset.studioView === view));
-    const activeTool = ({ character: "Character", "asset-generator": "Asset Generator", "asset-pack": "Asset Pack", tileset: "Tileset", animation: "Animation" })[view] || "";
+    const activeTool = ({ character: "Character", "asset-generator": "Asset Generator", "asset-pack": "Asset Pack", tileset: "Tileset", animation: "Animation", "manual-editor": "Manual Editor" })[view] || "";
     root.querySelectorAll("[data-studio-tool]").forEach((button) => button.classList.toggle("is-active", button.dataset.studioTool === activeTool));
     wireView();
     if (next === "character") setupCharacterCreator({ theme: activeTheme(), themes: workspaceThemes, onThemePicker: () => openThemePicker("character"), onSaved: async () => { await loadLibrary(); notify("Character saved to your private library."); } });
@@ -162,6 +169,7 @@ export function setupAppStudio({ initialAssetId = "", initialAnimationAssetId = 
     if (next === "asset-pack") setupAssetPack({ theme: activeTheme(), packs: assetPacks, onChanged: loadLibrary, onNotice: notify });
     if (next === "tileset") setupTileset({ theme: activeTheme(), tilesets, onChanged: loadLibrary, onNotice: notify });
     if (next === "animation") setupAnimation4({ theme: activeTheme(), assets, jobs: pixelEngineJobs, initialAssetId: animationSourceId, onChanged: loadLibrary, onNotice: notify });
+    if (next === "manual-editor") activeManualEditor = setupManualEditor({ assets, initialAssetId: editorAssetId, onNavigate: (id) => { editorAssetId = id; history.replaceState({}, "", `/app?edit=${encodeURIComponent(id)}`); setView("manual-editor"); }, onChanged: loadLibrary, onNotice: notify });
     wireEditorThemeControl(next);
     if (promptText) window.setTimeout(() => prefillEditorPrompt(next, promptText), 0);
   };
@@ -207,7 +215,7 @@ export function setupAppStudio({ initialAssetId = "", initialAnimationAssetId = 
         type: item.kind === "character" ? "Character" : item.kind === "animation" ? "Animation" : item.kind === "tileset" || item.kind === "tile" ? "Tileset" : item.kind === "pack" ? "Pack" : "Asset",
         projectId: item.project_id || "",
         project: projectNames.get(item.project_id) || "Unorganized",
-        image: item.files["game-ready"]?.url || item.files.original?.url || item.files.animation?.url || "showcase/avatars/outlined/tinyslime24.png",
+        image: item.files.animation?.url || item.files["game-ready"]?.url || item.files.original?.url || "showcase/avatars/outlined/tinyslime24.png",
         date: new Date(item.updated_at).toLocaleDateString(), meta: "Private asset",
         model: item.kind === "animation" ? "SpriteForge Animation" : "GPT Image",
         background: item.files["game-ready"] || item.files.animation ? "Transparent" : "Original",
@@ -285,9 +293,9 @@ export function setupAppStudio({ initialAssetId = "", initialAnimationAssetId = 
     const item = assets.find((asset) => asset.id === id); if (!item) return;
     const fileUrl = item.files?.animation?.url || item.files?.["game-ready"]?.url || item.files?.original?.url || imageSource(item);
     const isAnimation = Boolean(item.files?.animation);
-    const extension = isAnimation ? "webp" : "png";
+    const extension = isAnimation ? (item.files.animation.mimeType === "image/gif" ? "gif" : "webp") : "png";
     const filename = `${String(item.name || "spriteforge-asset").replace(/[^a-z0-9]+/gi, "-").replace(/^-|-$/g, "").toLowerCase() || "spriteforge-asset"}.${extension}`;
-    modalRoot.innerHTML = `<div class="studio-overlay"><section class="studio-dialog studio-asset-dialog" role="dialog" aria-modal="true" aria-label="${escape(item.name)}"><header><button data-modal-close type="button">&larr; Back</button><div class="studio-asset-dialog-actions"><button type="button" aria-label="Favorite">♡</button>${isAnimation ? `<details class="studio-download-menu"><summary>&#8681; Export animation</summary><div><a href="${fileUrl}" download="${filename}">Animated WebP</a><a href="/api/assets/${item.id}/export/gif" download="${filename.replace(/\.webp$/, ".gif")}">GIF</a><a href="/api/assets/${item.id}/export/spritesheet" download="${filename.replace(/\.webp$/, "-spritesheet.png")}">PNG spritesheet</a></div></details>` : `<a class="studio-asset-download" href="${fileUrl}" download="${filename}">&#8681; Download PNG</a>`}<button data-modal-close type="button" aria-label="Close">×</button></div></header><div class="studio-asset-detail"><section class="studio-asset-preview checker"><img src="${fileUrl}" alt="${escape(item.name)}" /><div class="studio-zoom" aria-label="Preview zoom"><button data-studio-zoom-out type="button" aria-label="Zoom out">&minus;</button><b data-studio-zoom-label>1:1</b><button data-studio-zoom-in type="button" aria-label="Zoom in">+</button></div></section><aside><span class="studio-kicker">${escape(item.type)}</span><h2>${escape(item.name)}</h2><p class="studio-detail-meta">${escape(item.meta)} · ${escape(item.background)} · ${escape(item.model)}</p><div class="studio-action-group"><span>ORGANIZE</span><button data-action-project="${escape(item.id)}" type="button">Add to project <small>Group this asset in your library</small></button></div><div class="studio-action-group"><span>GENERATE</span><button type="button">Use these settings <small>Apply technical controls</small></button><button type="button">Generate variations <small>Same direction, new outputs</small></button><button data-action-reference="${item.id}" type="button">Use as style reference <small>Inspire the next asset</small></button><button type="button">Create variant / edit <small>Preserve character identity</small></button><button type="button">Animate <small>Open animation flow</small></button></div><div class="studio-action-group"><span>GAME-READY</span><button type="button">Crop <small>Trim transparent edges</small></button><button type="button">Resize &amp; grid <small>Change dimensions or pixel scale</small></button><button type="button">Recolour <small>Quantise or choose palette</small></button><button type="button">Background cleanup <small>Remove backdrop and edge bleed</small></button><button type="button">Slicer <small>Split into multiple assets</small></button></div></aside></div></section></div>`;
+    modalRoot.innerHTML = `<div class="studio-overlay"><section class="studio-dialog studio-asset-dialog" role="dialog" aria-modal="true" aria-label="${escape(item.name)}"><header><button data-modal-close type="button">&larr; Back</button><div class="studio-asset-dialog-actions"><button type="button" aria-label="Favorite">♡</button>${isAnimation ? `<details class="studio-download-menu"><summary>&#8681; Export animation</summary><div><a href="${fileUrl}" download="${filename}">Animated ${extension.toUpperCase()}</a><a href="/api/assets/${item.id}/export/gif" download="${filename.replace(/\.(?:webp|gif)$/, ".gif")}">GIF</a><a href="/api/assets/${item.id}/export/spritesheet" download="${filename.replace(/\.(?:webp|gif)$/, "-spritesheet.png")}">PNG spritesheet</a></div></details>` : `<a class="studio-asset-download" href="${fileUrl}" download="${filename}">&#8681; Download PNG</a>`}<button data-modal-close type="button" aria-label="Close">×</button></div></header><div class="studio-asset-detail"><section class="studio-asset-preview checker"><img src="${fileUrl}" alt="${escape(item.name)}" /><div class="studio-zoom" aria-label="Preview zoom"><button data-studio-zoom-out type="button" aria-label="Zoom out">&minus;</button><b data-studio-zoom-label>1:1</b><button data-studio-zoom-in type="button" aria-label="Zoom in">+</button></div></section><aside><span class="studio-kicker">${escape(item.type)}</span><h2>${escape(item.name)}</h2><p class="studio-detail-meta">${escape(item.meta)} · ${escape(item.background)} · ${escape(item.model)}</p><div class="studio-action-group"><span>ORGANIZE</span><button data-action-project="${escape(item.id)}" type="button">Add to project <small>Group this asset in your library</small></button></div><div class="studio-action-group"><span>GENERATE</span><button type="button">Use these settings <small>Apply technical controls</small></button><button type="button">Generate variations <small>Same direction, new outputs</small></button><button data-action-reference="${item.id}" type="button">Use as style reference <small>Inspire the next asset</small></button><button type="button">Create variant / edit <small>Preserve character identity</small></button><button type="button">Animate <small>Open animation flow</small></button></div><div class="studio-action-group"><span>GAME-READY</span><button type="button">Crop <small>Trim transparent edges</small></button><button type="button">Resize &amp; grid <small>Change dimensions or pixel scale</small></button><button type="button">Recolour <small>Quantise or choose palette</small></button><button type="button">Background cleanup <small>Remove backdrop and edge bleed</small></button><button type="button">Slicer <small>Split into multiple assets</small></button></div></aside></div></section></div>`;
     // The asset viewer is intentionally focused: keep the proven download and
     // zoom controls, while removing the placeholder action rail whose buttons
     // do not perform an operation yet.
@@ -312,7 +320,19 @@ export function setupAppStudio({ initialAssetId = "", initialAnimationAssetId = 
         const summary = downloadControl.querySelector("summary");
         if (summary) summary.textContent = "⇩ Download";
       }
+      const openPixelEditor = () => {
+        editorAssetId = item.id;
+        history.replaceState({}, "", `/app?edit=${encodeURIComponent(item.id)}`);
+        closeModal();
+        setView("manual-editor");
+      };
       actionRail.innerHTML = "";
+      const editButton = document.createElement("button");
+      editButton.className = "studio-viewer-edit";
+      editButton.type = "button";
+      editButton.textContent = "Edit pixel art";
+      editButton.addEventListener("click", openPixelEditor);
+      actionRail.append(editButton);
       if (!isAnimation) {
         const animateButton = document.createElement("button");
         animateButton.className = "studio-viewer-animate";
@@ -333,6 +353,12 @@ export function setupAppStudio({ initialAssetId = "", initialAnimationAssetId = 
       toolbarLabel.textContent = isAnimation ? "Animation preview" : "Sprite preview";
       toolbar.append(toolbarLabel);
       if (zoom) toolbar.append(zoom);
+      const toolbarEditButton = document.createElement("button");
+      toolbarEditButton.className = "studio-viewer-edit studio-viewer-toolbar-edit";
+      toolbarEditButton.type = "button";
+      toolbarEditButton.textContent = "Edit pixel art";
+      toolbarEditButton.addEventListener("click", openPixelEditor);
+      toolbar.append(toolbarEditButton);
       if (downloadControl) toolbar.append(downloadControl);
       const projectButton = assetDetail.querySelector("[data-action-project]");
       if (projectButton) {
@@ -569,7 +595,7 @@ export function setupAppStudio({ initialAssetId = "", initialAnimationAssetId = 
       });
     }
   };
-  const openTool = (tool, promptText = "") => { if (tool === "Character" || tool === "Asset Generator" || tool === "Asset Pack" || tool === "Tileset" || tool === "Animation") { if (!authState.user) openAuth("login"); else setView(tool === "Character" ? "character" : tool === "Asset Generator" ? "asset-generator" : tool === "Asset Pack" ? "asset-pack" : tool === "Tileset" ? "tileset" : "animation", promptText); } else notify(`${tool} is designed and ready for its functional phase.`); };
+  const openTool = (tool, promptText = "") => { if (tool === "Character" || tool === "Asset Generator" || tool === "Asset Pack" || tool === "Tileset" || tool === "Animation" || tool === "Manual Editor") { if (!authState.user) openAuth("login"); else setView(tool === "Character" ? "character" : tool === "Asset Generator" ? "asset-generator" : tool === "Asset Pack" ? "asset-pack" : tool === "Tileset" ? "tileset" : tool === "Animation" ? "animation" : "manual-editor", promptText); } else notify(`${tool} is designed and ready for its functional phase.`); };
   root.querySelectorAll("[data-studio-view]").forEach((button) => button.addEventListener("click", () => setView(button.dataset.studioView)));
   root.querySelectorAll("[data-studio-tool]").forEach((button) => button.addEventListener("click", () => openTool(button.dataset.studioTool)));
   root.addEventListener("click", (event) => { const trigger = event.target.closest("[data-auth-action]"); if (!trigger) return; if (trigger.dataset.authAction === "login") openAuth("login"); else notify(authState.user?.creditExempt ? "Administrator account · unlimited credits" : `${authState.user?.credits || 0} credits available${authState.user?.plan ? ` · ${authState.user.plan} plan active` : ""}`); });
@@ -599,6 +625,10 @@ export function setupAppStudio({ initialAssetId = "", initialAnimationAssetId = 
   });
   setView("home");
   refreshAuth().then(() => {
+    if (authState.user && initialEditorAssetId) {
+      setView("manual-editor");
+      return;
+    }
     if (authState.user && initialAnimationAssetId) {
       setView("animation");
       return;

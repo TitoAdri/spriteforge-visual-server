@@ -4,6 +4,8 @@ import path from "node:path";
 import { AuthError } from "./auth.mjs";
 
 const MAX_IMAGE_BYTES = 10 * 1024 * 1024;
+const MAX_EDITOR_DOCUMENT_BYTES = 12 * 1024 * 1024;
+const MAX_EDITOR_REVISIONS = 20;
 const ASSET_KINDS = new Set(["character", "enemy", "npc", "item", "weapon", "prop", "environment", "building", "tile", "tileset", "texture", "ui", "ui-icon", "ui-panel", "pack", "animation", "spritesheet", "frame", "reference"]);
 const FILE_VARIANTS = new Set(["original", "game-ready", "thumbnail", "animation"]);
 const REFERENCE_ROLES = new Set(["style", "identity"]);
@@ -48,6 +50,98 @@ function animationType(bytes, declaredType = "") {
   if (type === "image/webp" || (bytes.length >= 12 && bytes.subarray(0, 4).toString("ascii") === "RIFF" && bytes.subarray(8, 12).toString("ascii") === "WEBP")) return { extension: "webp", mimeType: "image/webp" };
   if (type === "image/gif" || (bytes.length >= 6 && (bytes.subarray(0, 6).toString("ascii") === "GIF87a" || bytes.subarray(0, 6).toString("ascii") === "GIF89a"))) return { extension: "gif", mimeType: "image/gif" };
   return imageType(bytes);
+}
+
+function pngInfo(bytes) {
+  if (bytes.length < 45 || !bytes.subarray(0, 8).equals(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10])) || bytes.readUInt32BE(8) !== 13 || bytes.subarray(12, 16).toString("ascii") !== "IHDR") return null;
+  const width = bytes.readUInt32BE(16); const height = bytes.readUInt32BE(20);
+  return width && height && bytes.includes(Buffer.from("IEND")) ? { width, height, frameCount: 1 } : null;
+}
+
+function gifInfo(bytes) {
+  if (bytes.length < 20 || !["GIF87a", "GIF89a"].includes(bytes.subarray(0, 6).toString("ascii"))) return null;
+  const width = bytes.readUInt16LE(6); const height = bytes.readUInt16LE(8); let offset = 13; let frameCount = 0;
+  if (bytes[10] & 0x80) offset += 3 * (2 ** ((bytes[10] & 7) + 1));
+  const skipBlocks = () => { while (offset < bytes.length) { const size = bytes[offset++]; if (!size) return true; offset += size; if (offset > bytes.length) return false; } return false; };
+  while (offset < bytes.length) {
+    const marker = bytes[offset++];
+    if (marker === 0x3b) return width && height && frameCount ? { width, height, frameCount } : null;
+    if (marker === 0x21) { if (offset >= bytes.length) return null; offset += 1; if (!skipBlocks()) return null; continue; }
+    if (marker !== 0x2c || offset + 9 > bytes.length) return null;
+    const frameWidth = bytes.readUInt16LE(offset + 4); const frameHeight = bytes.readUInt16LE(offset + 6); const packed = bytes[offset + 8]; offset += 9;
+    if (!frameWidth || !frameHeight || frameWidth > width || frameHeight > height) return null;
+    if (packed & 0x80) offset += 3 * (2 ** ((packed & 7) + 1));
+    if (offset >= bytes.length) return null; offset += 1;
+    if (!skipBlocks()) return null; frameCount += 1;
+  }
+  return null;
+}
+
+function jpegInfo(bytes) {
+  if (bytes.length < 12 || bytes[0] !== 0xff || bytes[1] !== 0xd8 || bytes.at(-2) !== 0xff || bytes.at(-1) !== 0xd9) return null;
+  const startOfFrame = new Set([0xc0, 0xc1, 0xc2, 0xc3, 0xc5, 0xc6, 0xc7, 0xc9, 0xca, 0xcb, 0xcd, 0xce, 0xcf]); let offset = 2;
+  while (offset + 4 <= bytes.length) {
+    while (bytes[offset] === 0xff) offset += 1;
+    const marker = bytes[offset++];
+    if (marker === 0xd8 || marker === 0xd9 || (marker >= 0xd0 && marker <= 0xd7)) continue;
+    if (offset + 2 > bytes.length) return null; const length = bytes.readUInt16BE(offset); if (length < 2 || offset + length > bytes.length) return null;
+    if (startOfFrame.has(marker)) { if (length < 7) return null; const height = bytes.readUInt16BE(offset + 3); const width = bytes.readUInt16BE(offset + 5); return width && height ? { width, height, frameCount: 1 } : null; }
+    offset += length;
+  }
+  return null;
+}
+
+function webpInfo(bytes) {
+  if (bytes.length < 30 || bytes.subarray(0, 4).toString("ascii") !== "RIFF" || bytes.subarray(8, 12).toString("ascii") !== "WEBP" || bytes.readUInt32LE(4) + 8 > bytes.length) return null;
+  let offset = 12;
+  while (offset + 8 <= bytes.length) {
+    const chunk = bytes.subarray(offset, offset + 4).toString("ascii"); const size = bytes.readUInt32LE(offset + 4); const data = offset + 8; if (data + size > bytes.length) return null;
+    if (chunk === "VP8X" && size >= 10) return { width: 1 + bytes.readUIntLE(data + 4, 3), height: 1 + bytes.readUIntLE(data + 7, 3), frameCount: 1 };
+    if (chunk === "VP8L" && size >= 5 && bytes[data] === 0x2f) { const bits = bytes.readUInt32LE(data + 1); return { width: 1 + (bits & 0x3fff), height: 1 + ((bits >>> 14) & 0x3fff), frameCount: 1 }; }
+    if (chunk === "VP8 " && size >= 10 && bytes[data + 3] === 0x9d && bytes[data + 4] === 0x01 && bytes[data + 5] === 0x2a) return { width: bytes.readUInt16LE(data + 6) & 0x3fff, height: bytes.readUInt16LE(data + 8) & 0x3fff, frameCount: 1 };
+    offset = data + size + (size % 2);
+  }
+  return null;
+}
+
+function editorImageInfo(bytes, mimeType) {
+  if (mimeType === "image/png") return pngInfo(bytes);
+  if (mimeType === "image/gif") return gifInfo(bytes);
+  if (mimeType === "image/jpeg") return jpegInfo(bytes);
+  if (mimeType === "image/webp") return webpInfo(bytes);
+  return null;
+}
+
+function decodeBase64Image(value, expectedType, field) {
+  const encoded = String(value || "").replace(/^data:[^;]+;base64,/, "");
+  if (!encoded || encoded.length > Math.ceil(MAX_IMAGE_BYTES * 4 / 3) + 8 || !/^[A-Za-z0-9+/]+={0,2}$/.test(encoded)) throw new AuthError(400, `invalid_${field}`, `Invalid ${field}`);
+  const bytes = Buffer.from(encoded, "base64");
+  if (bytes.length < 8 || bytes.length > MAX_IMAGE_BYTES) throw new AuthError(413, `${field}_too_large`, `${field} is too large`);
+  const type = expectedType === "animation" ? animationType(bytes) : imageType(bytes);
+  if (!type || (expectedType === "png" && type.mimeType !== "image/png") || (expectedType === "animation" && type.mimeType !== "image/gif")) throw new AuthError(415, `invalid_${field}`, `Invalid ${field}`);
+  return { bytes, ...type };
+}
+
+function validateEditorSnapshot(payload) {
+  const document = String(payload?.document || "");
+  const documentBytes = Buffer.byteLength(document, "utf8");
+  if (!document || documentBytes > MAX_EDITOR_DOCUMENT_BYTES) throw new AuthError(document ? 413 : 400, "invalid_editor_document", "Invalid editor document");
+  let parsed;
+  try { parsed = JSON.parse(document); } catch { throw new AuthError(400, "invalid_editor_document", "Invalid editor document"); }
+  const piskel = parsed?.piskel;
+  const width = Number(payload?.width); const height = Number(payload?.height); const frameCount = Number(payload?.frameCount);
+  if (!piskel || Number(piskel.width) !== width || Number(piskel.height) !== height || !Number.isInteger(width) || !Number.isInteger(height) || width < 1 || height < 1 || width > 1024 || height > 1024) throw new AuthError(400, "invalid_editor_dimensions", "Invalid editor dimensions");
+  if (!Number.isInteger(frameCount) || frameCount < 1 || frameCount > 256 || !Array.isArray(piskel.layers) || piskel.layers.length < 1 || piskel.layers.length > 64) throw new AuthError(400, "invalid_editor_structure", "Invalid editor structure");
+  for (const layerValue of piskel.layers) {
+    let layer; try { layer = typeof layerValue === "string" ? JSON.parse(layerValue) : layerValue; } catch { throw new AuthError(400, "invalid_editor_structure", "Invalid editor structure"); }
+    if (!layer || Number(layer.frameCount) !== frameCount || !Array.isArray(layer.chunks) || !layer.chunks.length) throw new AuthError(400, "invalid_editor_structure", "Invalid editor structure");
+  }
+  const gameReady = decodeBase64Image(payload?.gameReadyBase64, "png", "game_ready");
+  const animation = frameCount > 1 ? decodeBase64Image(payload?.animationBase64, "animation", "animation_preview") : null;
+  const gameReadyInfo = editorImageInfo(gameReady.bytes, gameReady.mimeType);
+  const animationInfo = animation ? editorImageInfo(animation.bytes, animation.mimeType) : null;
+  if (!gameReadyInfo || gameReadyInfo.width !== width || gameReadyInfo.height !== height || (animation && (!animationInfo || animationInfo.width !== width || animationInfo.height !== height || animationInfo.frameCount !== frameCount))) throw new AuthError(400, "invalid_editor_image_metadata", "Editor image metadata does not match the document");
+  return { document, documentBytes, width, height, frameCount, gameReady, animation };
 }
 
 async function readBytes(request, limit = MAX_IMAGE_BYTES) {
@@ -167,6 +261,16 @@ export function createLibrary(auth) {
       byte_size INTEGER NOT NULL, sha256 TEXT NOT NULL, created_at INTEGER NOT NULL,
       UNIQUE(asset_id, variant)
     );
+    CREATE TABLE IF NOT EXISTS asset_editor_revisions (
+      id TEXT PRIMARY KEY, asset_id TEXT NOT NULL REFERENCES assets(id) ON DELETE CASCADE,
+      revision_number INTEGER NOT NULL, document_storage_key TEXT NOT NULL,
+      document_byte_size INTEGER NOT NULL, game_ready_storage_key TEXT NOT NULL,
+      game_ready_byte_size INTEGER NOT NULL, animation_storage_key TEXT,
+      animation_byte_size INTEGER, animation_mime_type TEXT,
+      width INTEGER NOT NULL, height INTEGER NOT NULL, frame_count INTEGER NOT NULL,
+      created_at INTEGER NOT NULL, UNIQUE(asset_id, revision_number)
+    );
+    CREATE INDEX IF NOT EXISTS asset_editor_revisions_asset_index ON asset_editor_revisions(asset_id, revision_number DESC);
     CREATE TABLE IF NOT EXISTS asset_references (
       asset_id TEXT NOT NULL REFERENCES assets(id) ON DELETE CASCADE,
       reference_asset_id TEXT NOT NULL REFERENCES assets(id) ON DELETE RESTRICT,
@@ -510,6 +614,67 @@ export function createLibrary(auth) {
   const fetchFile = async (request, assetId, variant) => {
     const user = session(request); if (!FILE_VARIANTS.has(variant)) throw new AuthError(404, "not_found", "File not found"); const asset = requireOwned("assets", assetId, user.id); const file = db.prepare("SELECT * FROM asset_files WHERE asset_id = ? AND variant = ?").get(asset.id, variant); if (!file) throw new AuthError(404, "not_found", "File not found"); const bytes = await fs.readFile(path.join(root, file.storage_key)); return { bytes, mimeType: file.mime_type };
   };
+  const revisionPublic = (revision) => ({ id: revision.id, number: revision.revision_number, width: revision.width, height: revision.height, frameCount: revision.frame_count, documentByteSize: revision.document_byte_size, gameReadyByteSize: revision.game_ready_byte_size, animationByteSize: revision.animation_byte_size || null, createdAt: revision.created_at });
+  const editorInfo = (request, assetId) => {
+    const user = session(request); const asset = requireOwned("assets", assetId, user.id);
+    const files = db.prepare("SELECT variant,mime_type,byte_size FROM asset_files WHERE asset_id=?").all(asset.id);
+    const fileMap = {}; for (const file of files) fileMap[file.variant] = { mimeType: file.mime_type, byteSize: file.byte_size, url: `/api/assets/${asset.id}/files/${file.variant}` };
+    const revisions = db.prepare("SELECT * FROM asset_editor_revisions WHERE asset_id=? ORDER BY revision_number DESC LIMIT ?").all(asset.id, MAX_EDITOR_REVISIONS).map(revisionPublic);
+    return { asset: { ...assetPublic(asset), files: fileMap }, currentRevision: revisions[0] || null, revisions };
+  };
+  const fetchEditorRevision = async (request, assetId, revisionId) => {
+    const user = session(request); const asset = requireOwned("assets", assetId, user.id);
+    const revision = db.prepare("SELECT * FROM asset_editor_revisions WHERE id=? AND asset_id=?").get(revisionId, asset.id);
+    if (!revision) throw new AuthError(404, "not_found", "Editor revision not found");
+    return { bytes: await fs.readFile(path.join(root, revision.document_storage_key)), mimeType: "application/json; charset=utf-8" };
+  };
+  const writePrivateFile = async (absolute, bytes) => {
+    const temporary = `${absolute}.${crypto.randomBytes(8).toString("hex")}.tmp`;
+    await fs.writeFile(temporary, bytes, { mode: 0o600 }); await fs.rename(temporary, absolute);
+  };
+  const saveEditorRevisionForUser = async (user, assetId, payload) => {
+    const asset = requireOwned("assets", assetId, user.id); const snapshot = validateEditorSnapshot(payload); const revisionId = id(); const time = now();
+    const revisionNumber = Number(db.prepare("SELECT MAX(revision_number) AS value FROM asset_editor_revisions WHERE asset_id=?").get(asset.id)?.value || 0) + 1;
+    const directory = path.join(root, user.id, asset.id, "editor"); await fs.mkdir(directory, { recursive: true, mode: 0o700 });
+    const documentKey = path.join(user.id, asset.id, "editor", `${revisionId}.piskel.json`); const gameReadyKey = path.join(user.id, asset.id, "editor", `${revisionId}.png`); const animationKey = snapshot.animation ? path.join(user.id, asset.id, "editor", `${revisionId}.gif`) : null;
+    const createdFiles = [documentKey, gameReadyKey, animationKey].filter(Boolean);
+    try {
+      await writePrivateFile(path.join(root, documentKey), Buffer.from(snapshot.document, "utf8"));
+      await writePrivateFile(path.join(root, gameReadyKey), snapshot.gameReady.bytes);
+      if (snapshot.animation) await writePrivateFile(path.join(root, animationKey), snapshot.animation.bytes);
+      db.exec("BEGIN IMMEDIATE");
+      try {
+        db.prepare("INSERT INTO asset_editor_revisions (id,asset_id,revision_number,document_storage_key,document_byte_size,game_ready_storage_key,game_ready_byte_size,animation_storage_key,animation_byte_size,animation_mime_type,width,height,frame_count,created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)").run(revisionId, asset.id, revisionNumber, documentKey, snapshot.documentBytes, gameReadyKey, snapshot.gameReady.bytes.length, animationKey, snapshot.animation?.bytes.length || null, snapshot.animation?.mimeType || null, snapshot.width, snapshot.height, snapshot.frameCount, time);
+        db.prepare("INSERT INTO asset_files (id,asset_id,variant,storage_key,mime_type,byte_size,sha256,created_at) VALUES (?,?, 'game-ready',?,?,?,?,?) ON CONFLICT(asset_id,variant) DO UPDATE SET storage_key=excluded.storage_key,mime_type=excluded.mime_type,byte_size=excluded.byte_size,sha256=excluded.sha256,created_at=excluded.created_at").run(id(), asset.id, gameReadyKey, "image/png", snapshot.gameReady.bytes.length, crypto.createHash("sha256").update(snapshot.gameReady.bytes).digest("hex"), time);
+        if (snapshot.animation) db.prepare("INSERT INTO asset_files (id,asset_id,variant,storage_key,mime_type,byte_size,sha256,created_at) VALUES (?,?, 'animation',?,?,?,?,?) ON CONFLICT(asset_id,variant) DO UPDATE SET storage_key=excluded.storage_key,mime_type=excluded.mime_type,byte_size=excluded.byte_size,sha256=excluded.sha256,created_at=excluded.created_at").run(id(), asset.id, animationKey, snapshot.animation.mimeType, snapshot.animation.bytes.length, crypto.createHash("sha256").update(snapshot.animation.bytes).digest("hex"), time);
+        else db.prepare("DELETE FROM asset_files WHERE asset_id=? AND variant='animation'").run(asset.id);
+        db.prepare("UPDATE assets SET updated_at=? WHERE id=? AND user_id=?").run(time, asset.id, user.id); db.exec("COMMIT");
+      } catch (error) { try { db.exec("ROLLBACK"); } catch {} throw error; }
+    } catch (error) { for (const key of createdFiles) await fs.rm(path.join(root, key), { force: true }).catch(() => {}); throw error; }
+    const stale = db.prepare("SELECT * FROM asset_editor_revisions WHERE asset_id=? ORDER BY revision_number DESC LIMIT -1 OFFSET ?").all(asset.id, MAX_EDITOR_REVISIONS);
+    if (stale.length) {
+      db.prepare(`DELETE FROM asset_editor_revisions WHERE id IN (${stale.map(() => "?").join(",")})`).run(...stale.map((revision) => revision.id));
+      for (const revision of stale) for (const key of [revision.document_storage_key, revision.game_ready_storage_key, revision.animation_storage_key].filter(Boolean)) await fs.rm(path.join(root, key), { force: true }).catch(() => {});
+    }
+    return { revision: revisionPublic({ id: revisionId, revision_number: revisionNumber, width: snapshot.width, height: snapshot.height, frame_count: snapshot.frameCount, document_byte_size: snapshot.documentBytes, game_ready_byte_size: snapshot.gameReady.bytes.length, animation_byte_size: snapshot.animation?.bytes.length || null, created_at: time }), files: { "game-ready": { mimeType: "image/png", url: `/api/assets/${asset.id}/files/game-ready` }, animation: snapshot.animation ? { mimeType: snapshot.animation.mimeType, url: `/api/assets/${asset.id}/files/animation` } : null } };
+  };
+  const saveEditorRevision = async (request, assetId, payload) => saveEditorRevisionForUser(session(request, true), assetId, payload);
+  const copyEditorAsset = async (request, sourceAssetId, payload) => {
+    const user = session(request, true); const source = requireOwned("assets", sourceAssetId, user.id); const time = now(); const copy = { ...source, id: id(), parent_asset_id: source.id, name: text(payload?.name, "asset_name"), status: "draft", provider: source.provider || "manual-editor", created_at: time, updated_at: time };
+    db.prepare("INSERT INTO assets (id,user_id,project_id,collection_id,parent_asset_id,theme_id,theme_version,kind,name,status,provider,model,prompt,recipe_json,normalization_json,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)").run(copy.id, copy.user_id, copy.project_id, copy.collection_id, copy.parent_asset_id, copy.theme_id, copy.theme_version, copy.kind, copy.name, copy.status, copy.provider, copy.model, copy.prompt, copy.recipe_json, copy.normalization_json, time, time);
+    try { const saved = await saveEditorRevisionForUser(user, copy.id, payload); return { asset: assetPublic(copy), ...saved }; } catch (error) { db.prepare("DELETE FROM assets WHERE id=? AND user_id=?").run(copy.id, user.id); throw error; }
+  };
+  const uploadEditorAsset = async (request) => {
+    const user = session(request, true); let decodedName; try { decodedName = decodeURIComponent(String(request.headers["x-asset-name"] || "")); } catch { decodedName = ""; } const name = text(decodedName, "asset_name"); const kind = String(request.headers["x-asset-kind"] || "reference").toLowerCase(); if (!ASSET_KINDS.has(kind)) throw new AuthError(400, "invalid_asset_kind", "Invalid asset kind");
+    const bytes = await readBytes(request); const type = imageType(bytes); const imageInfo = type && editorImageInfo(bytes, type.mimeType); if (!type || !imageInfo) throw new AuthError(415, "invalid_image", "Only valid PNG, JPG and WebP images are accepted"); if (imageInfo.width > 1024 || imageInfo.height > 1024) throw new AuthError(400, "image_dimensions_too_large", "Images must be 1024×1024 or smaller");
+    const time = now(); const asset = { id: id(), user_id: user.id, project_id: null, collection_id: null, parent_asset_id: null, theme_id: null, theme_version: null, kind, name, status: "draft", provider: "upload", model: null, prompt: null, recipe_json: JSON.stringify({ source: "manual-upload" }), normalization_json: "{}", created_at: time, updated_at: time };
+    const directory = path.join(root, user.id, asset.id); await fs.mkdir(directory, { recursive: true, mode: 0o700 }); const storageKey = path.join(user.id, asset.id, `original.${type.extension}`); const absolute = path.join(root, storageKey);
+    try {
+      await writePrivateFile(absolute, bytes); db.exec("BEGIN IMMEDIATE");
+      try { db.prepare("INSERT INTO assets (id,user_id,project_id,collection_id,parent_asset_id,theme_id,theme_version,kind,name,status,provider,model,prompt,recipe_json,normalization_json,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)").run(asset.id, asset.user_id, null, null, null, null, null, asset.kind, asset.name, asset.status, asset.provider, null, null, asset.recipe_json, asset.normalization_json, time, time); db.prepare("INSERT INTO asset_files (id,asset_id,variant,storage_key,mime_type,byte_size,sha256,created_at) VALUES (?,?, 'original',?,?,?,?,?)").run(id(), asset.id, storageKey, type.mimeType, bytes.length, crypto.createHash("sha256").update(bytes).digest("hex"), time); db.exec("COMMIT"); } catch (error) { try { db.exec("ROLLBACK"); } catch {} throw error; }
+    } catch (error) { await fs.rm(absolute, { force: true }).catch(() => {}); throw error; }
+    return { asset: { ...assetPublic(asset), files: { original: { mimeType: type.mimeType, byteSize: bytes.length, url: `/api/assets/${asset.id}/files/original` } } } };
+  };
   const saveAnimationOutput = async (request, payload = {}) => {
     const user = session(request, true); const clip = requireOwned("animation_clips", String(payload.clipId || ""), user.id);
     const bytes = Buffer.from(String(payload.base64 || ""), "base64"); const type = animationType(bytes, payload.mimeType);
@@ -565,5 +730,5 @@ export function createLibrary(auth) {
   };
   const failGenerationJob = (user, job, errorCode) => db.prepare("UPDATE generation_jobs SET status = 'failed', error_code = ?, updated_at = ? WHERE id = ? AND user_id = ?").run(String(errorCode || "generation_failed").slice(0, 100), now(), job.id, user.id);
 
-  return { list, createProject, assignAssetProject, createTheme, updateTheme, setDefaultTheme, addThemeReference, resolveTheme, createCollection, createAssetPack, reservePackItem, retryPackItem, completePackItem, failPackItem, createTileset, reserveTilesetTile, retryTilesetTile, completeTilesetTile, failTilesetTile, createAnimationClip, deleteAnimationClip, reserveAnimationFrame, retryAnimationFrame, regenerateAnimationFrame, updateAnimationGeometry, regenerateAnimationClip, completeAnimationFrame, failAnimationFrame, startAnimationSheet, failAnimationSheet, attachAnimationFrame, setAnimationKeyframe, clearAnimationKeyframe, insertAnimationFrame, deleteAnimationFrame, retakeAnimationRange, createPreset, createAsset, uploadFile, fetchFile, saveAnimationOutput, createPixelEngineJob, getPixelEngineJob, updatePixelEngineJob, linkAnimationOutput, createGenerationJob, saveGenerationResult, failGenerationJob };
+  return { list, createProject, assignAssetProject, createTheme, updateTheme, setDefaultTheme, addThemeReference, resolveTheme, createCollection, createAssetPack, reservePackItem, retryPackItem, completePackItem, failPackItem, createTileset, reserveTilesetTile, retryTilesetTile, completeTilesetTile, failTilesetTile, createAnimationClip, deleteAnimationClip, reserveAnimationFrame, retryAnimationFrame, regenerateAnimationFrame, updateAnimationGeometry, regenerateAnimationClip, completeAnimationFrame, failAnimationFrame, startAnimationSheet, failAnimationSheet, attachAnimationFrame, setAnimationKeyframe, clearAnimationKeyframe, insertAnimationFrame, deleteAnimationFrame, retakeAnimationRange, createPreset, createAsset, uploadFile, fetchFile, editorInfo, fetchEditorRevision, saveEditorRevision, copyEditorAsset, uploadEditorAsset, saveAnimationOutput, createPixelEngineJob, getPixelEngineJob, updatePixelEngineJob, linkAnimationOutput, createGenerationJob, saveGenerationResult, failGenerationJob };
 }
