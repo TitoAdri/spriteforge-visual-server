@@ -145,6 +145,67 @@ function validateEditorSnapshot(payload) {
   return { document, documentBytes, width, height, frameCount, gameReady, animation };
 }
 
+function piskelChunkBytes(value) {
+  const encoded = String(value || "").replace(/^data:[^;]+;base64,/, "");
+  if (!encoded || !/^[A-Za-z0-9+/]+={0,2}$/.test(encoded)) throw new AuthError(400, "invalid_editor_document", "Invalid editor document");
+  const bytes = Buffer.from(encoded, "base64");
+  if (bytes.length < 8 || bytes.length > MAX_IMAGE_BYTES) throw new AuthError(413, "editor_document_too_large", "Editor document image is too large");
+  return bytes;
+}
+
+function compositeRgbaOver(destination, source, opacity = 1) {
+  for (let offset = 0; offset < destination.length; offset += 4) {
+    const sourceAlpha = (source[offset + 3] / 255) * opacity;
+    if (sourceAlpha <= 0) continue;
+    const destinationAlpha = destination[offset + 3] / 255;
+    const outputAlpha = sourceAlpha + destinationAlpha * (1 - sourceAlpha);
+    if (outputAlpha <= 0) continue;
+    destination[offset] = Math.round((source[offset] * sourceAlpha + destination[offset] * destinationAlpha * (1 - sourceAlpha)) / outputAlpha);
+    destination[offset + 1] = Math.round((source[offset + 1] * sourceAlpha + destination[offset + 1] * destinationAlpha * (1 - sourceAlpha)) / outputAlpha);
+    destination[offset + 2] = Math.round((source[offset + 2] * sourceAlpha + destination[offset + 2] * destinationAlpha * (1 - sourceAlpha)) / outputAlpha);
+    destination[offset + 3] = Math.round(outputAlpha * 255);
+  }
+}
+
+async function renderPiskelAnimation(document, width, height, frameCount, fps) {
+  let parsed;
+  try { parsed = JSON.parse(document); } catch { throw new AuthError(400, "invalid_editor_document", "Invalid editor document"); }
+  const layers = parsed?.piskel?.layers;
+  if (!Array.isArray(layers) || !layers.length) throw new AuthError(400, "invalid_editor_structure", "Invalid editor structure");
+  const layerFrames = Array.from({ length: frameCount }, () => []);
+  for (const layerValue of layers) {
+    let layer;
+    try { layer = typeof layerValue === "string" ? JSON.parse(layerValue) : layerValue; } catch { throw new AuthError(400, "invalid_editor_structure", "Invalid editor structure"); }
+    const opacity = Math.max(0, Math.min(1, Number.isFinite(Number(layer?.opacity)) ? Number(layer.opacity) : 1));
+    if (!Array.isArray(layer?.chunks) || !layer.chunks.length) throw new AuthError(400, "invalid_editor_structure", "Invalid editor structure");
+    for (const chunk of layer.chunks) {
+      const layout = chunk?.layout;
+      if (!Array.isArray(layout) || !layout.length || !layout.every((row) => Array.isArray(row) && row.length)) throw new AuthError(400, "invalid_editor_structure", "Invalid editor structure");
+      const sourceBytes = piskelChunkBytes(chunk.base64PNG);
+      const source = sharp(sourceBytes, { failOn: "none" });
+      const metadata = await source.metadata();
+      const frameWidth = Math.floor(Number(metadata.width || 0) / layout.length);
+      const frameHeight = Math.floor(Number(metadata.height || 0) / layout[0].length);
+      if (frameWidth !== width || frameHeight !== height) throw new AuthError(400, "invalid_editor_dimensions", "Invalid editor dimensions");
+      for (let column = 0; column < layout.length; column++) {
+        for (let row = 0; row < layout[column].length; row++) {
+          const frameIndex = Number(layout[column][row]);
+          if (!Number.isInteger(frameIndex) || frameIndex < 0 || frameIndex >= frameCount) throw new AuthError(400, "invalid_editor_structure", "Invalid editor structure");
+          const pixels = await source.clone().extract({ left: column * width, top: row * height, width, height }).ensureAlpha().raw().toBuffer();
+          layerFrames[frameIndex].push({ pixels, opacity });
+        }
+      }
+    }
+  }
+  const renderedFrames = layerFrames.map((parts) => {
+    const pixels = Buffer.alloc(width * height * 4);
+    for (const part of parts) compositeRgbaOver(pixels, part.pixels, part.opacity);
+    return pixels;
+  });
+  const delay = Math.max(20, Math.round(1000 / Math.max(1, Math.min(60, Number(fps) || 12))));
+  return sharp(Buffer.concat(renderedFrames), { raw: { width, height: height * frameCount, channels: 4, pageHeight: height } }).gif({ loop: 0, delay: Array(frameCount).fill(delay), effort: 6 }).toBuffer();
+}
+
 async function readBytes(request, limit = MAX_IMAGE_BYTES) {
   const chunks = []; let size = 0;
   for await (const chunk of request) { size += chunk.length; if (size > limit) throw new AuthError(413, "file_too_large", "Image is too large"); chunks.push(chunk); }
@@ -680,6 +741,10 @@ export function createLibrary(auth) {
   };
   const saveEditorRevisionForUser = async (user, assetId, payload) => {
     const asset = requireOwned("assets", assetId, user.id); const snapshot = validateEditorSnapshot(payload); const revisionId = id(); const time = now();
+    if (snapshot.animation && snapshot.frameCount > 1) {
+      snapshot.animation = { bytes: await renderPiskelAnimation(snapshot.document, snapshot.width, snapshot.height, snapshot.frameCount, parseJson(snapshot.document)?.piskel?.fps), mimeType: "image/gif", extension: "gif" };
+      if (snapshot.animation.bytes.length > MAX_IMAGE_BYTES || !gifInfo(snapshot.animation.bytes)) throw new AuthError(413, "animation_too_large", "Animation is too large to save");
+    }
     const revisionNumber = Number(db.prepare("SELECT MAX(revision_number) AS value FROM asset_editor_revisions WHERE asset_id=?").get(asset.id)?.value || 0) + 1;
     const directory = path.join(root, user.id, asset.id, "editor"); await fs.mkdir(directory, { recursive: true, mode: 0o700 });
     const documentKey = path.join(user.id, asset.id, "editor", `${revisionId}.piskel.json`); const gameReadyKey = path.join(user.id, asset.id, "editor", `${revisionId}.png`); const animationKey = snapshot.animation ? path.join(user.id, asset.id, "editor", `${revisionId}.gif`) : null;
