@@ -169,13 +169,17 @@
     var formatCoordinates = function () {
       if (!coordinates || coordinates.dataset.spriteforgeInfo === coordinates.textContent) return;
       var dimensions = coordinates.textContent.match(/\[(\d+)x(\d+)\]/);
-      var zoom = coordinates.textContent.match(/x([\d.]+)/);
+      var zoom = coordinates.textContent.match(/(?:^|\s)x([\d.]+)/);
       var frame = coordinates.textContent.match(/(\d+)\/(\d+)/);
       if (!dimensions || !zoom || !frame) return;
       coordinates.dataset.spriteforgeInfo = coordinates.textContent;
       coordinates.innerHTML = '<span class="editor-info-size"><b>' + dimensions[1] + ' × ' + dimensions[2] + '</b><small>canvas</small></span><span class="editor-info-zoom">' + Math.round(Number(zoom[1]) * 100) + '%</span><span class="editor-info-frame">Frame ' + frame[1] + ' / ' + frame[2] + '</span>';
     };
-    if (coordinates) { new MutationObserver(formatCoordinates).observe(coordinates, { childList: true, characterData: true, subtree: true }); formatCoordinates(); }
+    if (coordinates) {
+      new MutationObserver(formatCoordinates).observe(coordinates, { childList: true, characterData: true, subtree: true });
+      window.setInterval(formatCoordinates, 250);
+      formatCoordinates();
+    }
     restyleCanvasSurface();
     $.subscribe(Events.PISKEL_SAVE_STATE, function () { if (!suppressDirty && initialized) send("spriteforge:dirty"); });
     suppressDirty = false;
