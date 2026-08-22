@@ -327,7 +327,9 @@ http.createServer(async (request, response) => {
     if (request.method === "POST" && pathname === "/api/assets") return send(response, 201, library.createAsset(request, await readJson(request)));
     if (request.method === "POST" && pathname === "/api/editor/uploads") return send(response, 201, await library.uploadEditorAsset(request));
     const editorRoute = pathname.match(/^\/api\/assets\/([0-9a-f-]{36})\/editor$/i);
-    if (editorRoute && request.method === "GET") return send(response, 200, library.editorInfo(request, editorRoute[1]));
+    if (editorRoute && request.method === "GET") return send(response, 200, await library.editorInfo(request, editorRoute[1]));
+    const editorImportRoute = pathname.match(/^\/api\/assets\/([0-9a-f-]{36})\/editor\/import$/i);
+    if (editorImportRoute && request.method === "GET") return sendFile(response, 200, await library.fetchEditorAnimationImport(request, editorImportRoute[1]));
     const editorRevisionListRoute = pathname.match(/^\/api\/assets\/([0-9a-f-]{36})\/editor\/revisions$/i);
     if (editorRevisionListRoute && request.method === "POST") return send(response, 201, await library.saveEditorRevision(request, editorRevisionListRoute[1], await readJson(request, 32 * 1024 * 1024)));
     const editorRevisionRoute = pathname.match(/^\/api\/assets\/([0-9a-f-]{36})\/editor\/revisions\/([0-9a-f-]{36})$/i);

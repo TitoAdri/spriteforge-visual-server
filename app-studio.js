@@ -3,7 +3,7 @@ import { assetGeneratorMarkup, setupAssetGenerator } from "/asset-generator.js?v
 import { assetPackMarkup, setupAssetPack } from "/asset-pack.js?v=5";
 import { tilesetMarkup, setupTileset } from "/tileset.js?v=5";
 import { animation4Markup, setupAnimation4 } from "/animation4.js?v=7";
-import { manualEditorMarkup, setupManualEditor } from "/manual-editor.js?v=12";
+import { manualEditorMarkup, setupManualEditor } from "/manual-editor.js?v=13";
 
 const asset = (path) => `/assets/${path}`;
 const readableName = (value) => {
@@ -363,7 +363,7 @@ export function setupAppStudio({ initialAssetId = "", initialAnimationAssetId = 
         const toolbarEditButton = document.createElement("button");
         toolbarEditButton.className = "studio-viewer-edit studio-viewer-toolbar-edit";
         toolbarEditButton.type = "button";
-        toolbarEditButton.textContent = "Edit pixel art";
+        toolbarEditButton.textContent = isAnimation ? "Edit animation" : "Edit pixel art";
         toolbarEditButton.addEventListener("click", openPixelEditor);
         toolbarActions.append(toolbarEditButton);
       }

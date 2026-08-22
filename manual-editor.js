@@ -11,13 +11,13 @@ const chooser = (assets) => `<section class="manual-editor-chooser" data-editor-
 
 export const manualEditorMarkup = ({ assets = [], assetId = "" } = {}) => `<section class="studio-view manual-editor-view" data-manual-editor data-asset-id="${escapeHtml(assetId)}">
   <header class="manual-editor-toolbar">
-    <div class="manual-editor-identity"><div><span class="manual-editor-kicker">ADMIN TOOL · PIXEL EDITOR</span><b>Manual editor</b></div><span data-editor-asset-name>${assetId ? "Loading asset…" : "No asset selected"}</span></div>
+    <div class="manual-editor-identity"><div><span class="manual-editor-kicker" data-editor-kicker>ADMIN TOOL · PIXEL EDITOR</span><b data-editor-title>Manual editor</b></div><span data-editor-asset-name>${assetId ? "Loading asset…" : "No asset selected"}</span><small data-editor-frame-summary hidden></small></div>
     <div class="manual-editor-tools"><button data-editor-choose type="button">Change asset</button><button data-editor-history-toggle type="button">History</button><button class="manual-editor-save" data-editor-save type="button" disabled>Save</button><button data-editor-save-copy type="button" disabled>Save as new</button></div>
     <span class="manual-editor-status" data-editor-status>No changes</span>
   </header>
   <div class="manual-editor-history" data-editor-history hidden><header><b>Revision history</b><button data-editor-history-close type="button">×</button></header><div data-editor-history-list><p>No saved revisions yet.</p></div></div>
   <div class="manual-editor-mobile"><h2>Editor available on desktop</h2><p>Open SpriteForge on a screen at least 1024 px wide to use the full manual editor.</p></div>
-  <div class="manual-editor-stage" data-editor-stage><div class="manual-editor-loading" data-editor-loading><span></span><b>${assetId ? "Loading your editable asset…" : "Choose an asset to start editing"}</b></div><iframe data-editor-frame src="/pixel-editor/index.html?v=11" title="SpriteForge pixel art editor"></iframe></div>
+  <div class="manual-editor-stage" data-editor-stage><div class="manual-editor-loading" data-editor-loading><span></span><b>${assetId ? "Loading your editable asset…" : "Choose an asset to start editing"}</b></div><iframe data-editor-frame src="/pixel-editor/index.html?v=12" title="SpriteForge pixel art editor"></iframe></div>
   <div class="manual-editor-picker" data-editor-picker ${assetId ? "hidden" : ""}>${chooser(assets)}</div>
 </section>`;
 
@@ -60,10 +60,20 @@ export function setupManualEditor({ assets = [], initialAssetId = "", onNavigate
     initialized = true;
     try {
       const response = await fetch(`/api/assets/${assetId}/editor`, { credentials: "same-origin", cache: "no-store" }); const payload = await response.json(); if (!response.ok) throw new Error(payload.error || "Asset could not be opened"); info = payload;
-      root.querySelector("[data-editor-asset-name]").textContent = `Asset: ${payload.asset.name}`; renderHistory();
+      const animation = payload.mode === "animation";
+      root.dataset.editorMode = animation ? "animation" : "image";
+      root.querySelector("[data-editor-kicker]").textContent = animation ? "ADMIN TOOL · ANIMATION EDITOR" : "ADMIN TOOL · PIXEL EDITOR";
+      root.querySelector("[data-editor-title]").textContent = animation ? "Animation editor" : "Manual editor";
+      root.querySelector("[data-editor-asset-name]").textContent = `${animation ? "Animation" : "Asset"}: ${payload.asset.name}`;
+      const frameSummary = root.querySelector("[data-editor-frame-summary]");
+      const frameCount = payload.currentRevision?.frameCount || payload.animationImport?.frameCount;
+      const fps = payload.animationImport?.fps;
+      frameSummary.hidden = !animation || !frameCount;
+      frameSummary.textContent = frameCount ? `${frameCount} frame${frameCount === 1 ? "" : "s"}${fps ? ` · ${fps} FPS` : ""}` : "";
+      renderHistory();
       let document = null;
       if (payload.currentRevision) { const revisionResponse = await fetch(`/api/assets/${assetId}/editor/revisions/${payload.currentRevision.id}`, { credentials: "same-origin", cache: "no-store" }); if (!revisionResponse.ok) throw new Error("Editable document could not be loaded"); document = await revisionResponse.text(); }
-      post("spriteforge:init", { document, sourceUrl: document ? null : sourceUrl(payload.asset), name: payload.asset.name });
+      post("spriteforge:init", { document, sourceUrl: document ? null : (payload.animationImport?.url || sourceUrl(payload.asset)), name: payload.asset.name, fps: payload.animationImport?.fps || null });
     } catch (error) { initialized = false; loading.innerHTML = `<b>${escapeHtml(error.message)}</b>`; setStatus("Could not load", "error"); }
   };
 
@@ -82,7 +92,7 @@ export function setupManualEditor({ assets = [], initialAssetId = "", onNavigate
       const response = await fetch(url, { method: "POST", credentials: "same-origin", headers: { "Content-Type": "application/json", "X-CSRF-Token": csrf() }, body: JSON.stringify({ ...snapshot, name: name || undefined }) }); const payload = await response.json(); if (!response.ok) throw new Error(payload.error || "The edit could not be saved");
       const copiedAssetId = asCopy ? payload.asset.id : "";
       if (copiedAssetId) assetId = copiedAssetId;
-      const refreshed = await fetch(`/api/assets/${assetId}/editor`, { credentials: "same-origin", cache: "no-store" }); info = await refreshed.json(); root.querySelector("[data-editor-asset-name]").textContent = `Asset: ${info.asset.name}`; renderHistory(); setDirty(false); setStatus("Saved", "saved"); await onChanged?.(); notice(asCopy ? "New edited asset saved." : "Pixel art saved.");
+      const refreshed = await fetch(`/api/assets/${assetId}/editor`, { credentials: "same-origin", cache: "no-store" }); info = await refreshed.json(); root.querySelector("[data-editor-asset-name]").textContent = `${info.mode === "animation" ? "Animation" : "Asset"}: ${info.asset.name}`; renderHistory(); setDirty(false); setStatus("Saved", "saved"); await onChanged?.(); notice(asCopy ? "New edited asset saved." : info.mode === "animation" ? "Animation saved." : "Pixel art saved.");
       if (copiedAssetId) window.setTimeout(() => onNavigate?.(copiedAssetId), 0);
     } catch (error) { if (error.message !== "Save as New was cancelled.") notice(error.message); setStatus(dirty ? "Unsaved changes" : "No changes", dirty ? "dirty" : "idle"); }
     finally { saving = false; saveButton.disabled = !dirty; copyButton.disabled = !assetId; }
