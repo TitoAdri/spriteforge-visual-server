@@ -170,7 +170,7 @@ const home = () => `
         <h1>Forge a game world<br /><em>players remember.</em></h1>
         <p class="hero-copy">Create characters, props, tilesets and animations in one consistent pixel-art workspace. Describe what you need, then ship a clean, game-ready asset.</p>
         <form class="hero-character-cta" id="hero-character-form"><label for="hero-character-brief">What character should we forge first?</label><div><span class="hero-prompt-icon" aria-hidden="true">✦</span><input id="hero-character-brief" name="brief" maxlength="700" placeholder="A moonlit ranger with a teal cloak and brass goggles" autocomplete="off" required /><button type="submit">Create</button></div></form><div class="hero-actions"><a class="hero-text-cta" href="/pricing" data-route="/pricing">View plans <b>→</b></a></div>
-        <div class="trust-row"><span>✦ 40 free credits</span><span>▦ Grid-aware output</span><span>◈ Private library</span><span>✓ No card required</span></div>
+        <div class="trust-row"><span>✦ 40 free credits</span><span>▦ Grid-aware output</span><span>◈ Private library</span><span>✓ No card required</span></div><div class="hero-animation-cta"><span>Or animate your own</span><label for="hero-animation-file">↑ Upload an image</label><input id="hero-animation-file" type="file" accept="image/png,image/jpeg,image/webp" hidden /><small>PNG, JPG or WebP · max 10 MiB</small><p id="hero-animation-error" role="alert" hidden></p></div>
       </div>
       <div class="hero-art" aria-label="SpriteForge pixel art examples"><div class="hero-art-card hero-art-main"><img src="${asset("examples/pixel-art-characters/gilded-knight/idle.webp")}" alt="Generated pixel art knight"/><span>Character · ready to ship</span></div><div class="hero-art-card hero-art-small"><img src="${asset("showcase/pack/tree.png")}" alt="Pixel art tree asset"/><span>Asset · 24 colors</span></div><div class="hero-art-card hero-art-tiny"><img src="${asset("examples/tiny-pixel-art/tiny_owl_idle.webp")}" alt="Pixel art owl"/><span>Theme · consistent</span></div></div>
     </section>
@@ -358,6 +358,55 @@ function continuePendingCharacter() {
   return true;
 }
 
+const pendingAnimationUploadId = "animation-source";
+const pendingAnimationUploads = () => new Promise((resolve, reject) => {
+  if (!window.indexedDB) { reject(new Error("Your browser cannot keep the image while signing in.")); return; }
+  const request = window.indexedDB.open("spriteforge-pending", 1);
+  request.onupgradeneeded = () => request.result.createObjectStore("uploads", { keyPath: "id" });
+  request.onsuccess = () => resolve(request.result);
+  request.onerror = () => reject(request.error || new Error("Could not prepare the upload."));
+});
+const savePendingAnimationUpload = async (file) => {
+  const database = await pendingAnimationUploads();
+  await new Promise((resolve, reject) => { const transaction = database.transaction("uploads", "readwrite"); transaction.objectStore("uploads").put({ id: pendingAnimationUploadId, name: file.name, type: file.type, blob: file }); transaction.oncomplete = resolve; transaction.onerror = () => reject(transaction.error || new Error("Could not keep the image.")); });
+  database.close();
+};
+const readPendingAnimationUpload = async () => {
+  const database = await pendingAnimationUploads();
+  const value = await new Promise((resolve, reject) => { const request = database.transaction("uploads", "readonly").objectStore("uploads").get(pendingAnimationUploadId); request.onsuccess = () => resolve(request.result || null); request.onerror = () => reject(request.error || new Error("Could not read the pending image.")); });
+  database.close(); return value;
+};
+const clearPendingAnimationUpload = async () => {
+  const database = await pendingAnimationUploads();
+  await new Promise((resolve, reject) => { const transaction = database.transaction("uploads", "readwrite"); transaction.objectStore("uploads").delete(pendingAnimationUploadId); transaction.oncomplete = resolve; transaction.onerror = () => reject(transaction.error || new Error("Could not clear the pending image.")); });
+  database.close();
+};
+const pixelateAnimationSource = async (file) => {
+  const bitmap = await createImageBitmap(file);
+  const maximum = 512;
+  const factor = Math.min(1, maximum / Math.max(bitmap.width, bitmap.height));
+  const width = Math.max(1, Math.round(bitmap.width * factor)); const height = Math.max(1, Math.round(bitmap.height * factor));
+  const source = document.createElement("canvas"); source.width = width; source.height = height;
+  const sourceContext = source.getContext("2d", { willReadFrequently: true }); sourceContext.imageSmoothingEnabled = true; sourceContext.drawImage(bitmap, 0, 0, width, height); bitmap.close?.();
+  const sourceData = sourceContext.getImageData(0, 0, width, height); const snapped = processPixelGrid(sourceData, { colors: 32, minimumConfidence: 0.04 });
+  let output = snapped.ok ? snapped.output : null;
+  if (!output) { const longest = Math.max(width, height); const scale = Math.min(1, 96 / longest); const pixelWidth = Math.max(1, Math.round(width * scale)); const pixelHeight = Math.max(1, Math.round(height * scale)); const reduced = document.createElement("canvas"); reduced.width = pixelWidth; reduced.height = pixelHeight; const reducedContext = reduced.getContext("2d", { willReadFrequently: true }); reducedContext.imageSmoothingEnabled = true; reducedContext.drawImage(source, 0, 0, pixelWidth, pixelHeight); output = quantizePalette(reducedContext.getImageData(0, 0, pixelWidth, pixelHeight), 32, 0); }
+  const result = document.createElement("canvas"); result.width = output.width; result.height = output.height; result.getContext("2d").putImageData(output, 0, 0);
+  const blob = await new Promise((resolve) => result.toBlob(resolve, "image/png")); if (!blob) throw new Error("The image could not be converted to pixel art."); return blob;
+};
+const continuePendingAnimationUpload = async () => {
+  let pending;
+  try { pending = await readPendingAnimationUpload(); } catch { return false; }
+  if (!pending?.blob) return false;
+  try {
+    const pixelArt = await pixelateAnimationSource(pending.blob); const name = pending.name.replace(/\.[^.]+$/, "").replace(/[-_]+/g, " ").trim().slice(0, 160) || "Imported animation source";
+    const csrf = document.cookie.split(";").map((entry) => entry.trim()).find((entry) => entry.startsWith("spriteforge_csrf="))?.slice("spriteforge_csrf=".length) || "";
+    const response = await fetch("/api/editor/uploads", { method: "POST", credentials: "same-origin", headers: { "Content-Type": "image/png", "X-CSRF-Token": csrf, "X-Asset-Name": encodeURIComponent(name), "X-Asset-Kind": "prop", "X-SpriteForge-Pixel-Art": "1" }, body: pixelArt }); const payload = await response.json();
+    if (!response.ok || !payload.asset?.id) throw new Error(payload.error || "The image could not be added to your library.");
+    await clearPendingAnimationUpload(); window.location.assign(`/app?view=animation&animate=${encodeURIComponent(payload.asset.id)}`); return true;
+  } catch (error) { try { await clearPendingAnimationUpload(); } catch {} localStorage.setItem("spriteforge_pending_animation_error", error.message || "The image could not be added."); return false; }
+};
+
 function render() {
   const path = window.location.pathname;
   if (window.__spriteforgeXPageViewPath !== path) {
@@ -369,7 +418,7 @@ function render() {
   if (path === "/reset-password") { document.querySelector("#app").innerHTML = passwordResetMarkup(); setupPasswordReset(); return; }
   if (path === "/app") {
     const root = document.querySelector("#app"); root.innerHTML = `<main class="app-route-loading" aria-live="polite">Checking your secure workspace…</main>`;
-    fetch("/api/auth/me", { credentials: "same-origin", cache: "no-store" }).then((response) => response.json()).then((state) => { if (state?.user) { if (continuePendingCharacter()) return; root.innerHTML = appStudioMarkup(); const query = new URLSearchParams(window.location.search); setupAppStudio({ initialAssetId: query.get("asset") || "", initialAnimationAssetId: query.get("animate") || "", initialEditorAssetId: query.get("edit") || "" }); return; } history.replaceState({}, "", "/"); render(); openMarketingAuth("login"); }).catch(() => { history.replaceState({}, "", "/"); render(); openMarketingAuth("login"); });
+    fetch("/api/auth/me", { credentials: "same-origin", cache: "no-store" }).then((response) => response.json()).then(async (state) => { if (state?.user) { if (continuePendingCharacter()) return; if (await continuePendingAnimationUpload()) return; root.innerHTML = appStudioMarkup(); const query = new URLSearchParams(window.location.search); setupAppStudio({ initialAssetId: query.get("asset") || "", initialAnimationAssetId: query.get("animate") || "", initialEditorAssetId: query.get("edit") || "" }); return; } history.replaceState({}, "", "/"); render(); openMarketingAuth("login"); }).catch(() => { history.replaceState({}, "", "/"); render(); openMarketingAuth("login"); });
     return;
   }
   document.querySelector("#app").innerHTML = legalRoutes[path]?.() || (path === "/pricing" ? pricing() : path === "/docs" ? docs() : path === "/verify-email" ? `<main class="verification-page"><section class="verification-card"><img src="/assets/spriteforge-logo.png" alt="SpriteForge" /><span class="eyebrow">SPRITEFORGE ACCOUNT</span><span class="verification-orb" aria-hidden="true">✦</span><h1>Email verification</h1><p id="verify-email-status" data-state="loading">Verifying your email securely…</p><a class="verification-cta" href="/app" data-route="/app">Open workspace <b>→</b></a><small>Secure verification · Credits are granted once only.</small></section></main>` : path === "/app" ? appStudioMarkup() : path === "/pixel-grid-detector" ? pixelDetector() : path === "/tileset-base-generator" ? tileset() : path === "/character-creator" ? `${nav()}${characterCreatorMarkup()}` : path === "/asset-generator" ? `${nav()}${assetGeneratorMarkup()}${footerNoDiscord()}` : home());
@@ -385,6 +434,18 @@ function render() {
       if (state?.user) { window.location.assign(`/character-creator?brief=${encodeURIComponent(brief)}`); return; }
     } catch { /* Authentication dialog is the safe fallback. */ }
     localStorage.setItem("spriteforge_pending_character_brief", brief);
+    openMarketingAuth("register");
+  });
+  document.querySelector("#hero-animation-file")?.addEventListener("change", async (event) => {
+    const input = event.currentTarget; const file = input.files?.[0]; const error = document.querySelector("#hero-animation-error"); if (!file) return;
+    const validType = /^image\/(png|jpeg|webp)$/.test(file.type) || /\.(png|jpe?g|webp)$/i.test(file.name);
+    if (!validType || file.size > 10 * 1024 * 1024) { if (error) { error.textContent = "Choose a PNG, JPG or WebP image smaller than 10 MiB."; error.hidden = false; } input.value = ""; return; }
+    if (error) error.hidden = true;
+    try {
+      await savePendingAnimationUpload(file);
+      const response = await fetch("/api/auth/me", { credentials: "same-origin", cache: "no-store" }); const state = await response.json();
+      if (state?.user) { window.location.assign("/app"); return; }
+    } catch (cause) { if (error) { error.textContent = cause.message || "We could not prepare that image. Please try again."; error.hidden = false; } input.value = ""; return; }
     openMarketingAuth("register");
   });
   document.querySelectorAll("[data-plan-signup]").forEach((button) => button.addEventListener("click", async () => {
