@@ -130,6 +130,8 @@ export function setupAppStudio({ initialAssetId = "", initialAnimationAssetId = 
   let view = "home";
   let animationSourceId = initialAnimationAssetId;
   let editorAssetId = initialEditorAssetId;
+  const viewFromUrl = new URLSearchParams(window.location.search).get("view") || "";
+  const validViews = new Set(["home", "assets", "projects", "themes", "presets", "settings", "support", "character", "asset-generator", "asset-pack", "tileset", "animation", "manual-editor"]);
   let activeManualEditor = null;
   let selectedReferences = [];
   let authState = { user: null, available: false, httpsRequired: true };
@@ -155,12 +157,21 @@ export function setupAppStudio({ initialAssetId = "", initialAnimationAssetId = 
     field.dispatchEvent(new Event("input", { bubbles: true }));
     field.focus();
   };
-  const setView = (next, promptText = "") => {
+  const syncViewUrl = (next) => {
+    const query = new URLSearchParams(window.location.search);
+    query.delete("edit"); query.delete("asset"); query.delete("animate"); query.delete("view");
+    if (next === "manual-editor" && editorAssetId) query.set("edit", editorAssetId);
+    if (next === "animation" && animationSourceId) query.set("animate", animationSourceId);
+    if (next !== "home") query.set("view", next);
+    history.replaceState({}, "", `/app${query.size ? `?${query}` : ""}`);
+  };
+  const setView = (next, promptText = "", syncUrl = true) => {
     if (view === "manual-editor" && next !== "manual-editor" && activeManualEditor?.hasUnsavedChanges() && !window.confirm("Discard unsaved editor changes?")) return;
     activeManualEditor?.destroy(); activeManualEditor = null;
     if ((next === "presets" || next === "asset-pack") && !authState.user?.creditExempt) { notify("This beta workspace is available to administrators only."); next = "home"; }
     if (next === "manual-editor" && !isEditorAdmin()) { notify("The manual pixel editor is currently available to administrators only."); editorAssetId = ""; history.replaceState({}, "", "/app"); next = "assets"; }
     view = next;
+    if (syncUrl) syncViewUrl(view);
     content.innerHTML = next === "assets" ? assetsView() : next === "projects" ? projectsView() : next === "themes" ? liveThemesView() : next === "presets" ? presetsView() : next === "settings" ? settingsView(authState.user) : next === "support" ? supportView() : next === "character" ? characterView(isEditorAdmin()) : next === "asset-generator" ? assetGeneratorView() : next === "asset-pack" ? assetPackView() : next === "tileset" ? tilesetView() : next === "animation" ? animationView() : next === "manual-editor" ? manualEditorView(editorAssetId) : homeView();
     root.querySelectorAll("[data-studio-view]").forEach((button) => button.classList.toggle("is-active", button.dataset.studioView === view));
     const activeTool = ({ character: "Character", "asset-generator": "Asset Generator", "asset-pack": "Asset Pack", tileset: "Tileset", animation: "Animation", "manual-editor": "Manual Editor" })[view] || "";
@@ -171,7 +182,7 @@ export function setupAppStudio({ initialAssetId = "", initialAnimationAssetId = 
     if (next === "asset-pack") setupAssetPack({ theme: activeTheme(), packs: assetPacks, onChanged: loadLibrary, onNotice: notify });
     if (next === "tileset") setupTileset({ theme: activeTheme(), tilesets, onChanged: loadLibrary, onNotice: notify });
     if (next === "animation") setupAnimation4({ theme: activeTheme(), assets, jobs: pixelEngineJobs, initialAssetId: animationSourceId, onChanged: loadLibrary, onNotice: notify });
-    if (next === "manual-editor") activeManualEditor = setupManualEditor({ assets, initialAssetId: editorAssetId, onNavigate: (id) => { editorAssetId = id; history.replaceState({}, "", `/app?edit=${encodeURIComponent(id)}`); setView("manual-editor"); }, onChanged: loadLibrary, onNotice: notify });
+    if (next === "manual-editor") activeManualEditor = setupManualEditor({ assets, initialAssetId: editorAssetId, onNavigate: (id) => { editorAssetId = id; setView("manual-editor"); }, onChanged: loadLibrary, onNotice: notify });
     wireEditorThemeControl(next);
     if (promptText) window.setTimeout(() => prefillEditorPrompt(next, promptText), 0);
   };
@@ -329,7 +340,6 @@ export function setupAppStudio({ initialAssetId = "", initialAnimationAssetId = 
       }
       const openPixelEditor = () => {
         editorAssetId = item.id;
-        history.replaceState({}, "", `/app?edit=${encodeURIComponent(item.id)}`);
         closeModal();
         setView("manual-editor");
       };
@@ -643,19 +653,23 @@ export function setupAppStudio({ initialAssetId = "", initialAnimationAssetId = 
     }
     if (!event.target.closest(".studio-user, .studio-account-menu")) closeAccountMenu();
   });
-  setView("home");
+  setView("home", "", false);
   refreshAuth().then(() => {
     if (authState.user && initialEditorAssetId) {
-      setView("manual-editor");
+      setView("manual-editor", "", false);
       return;
     }
     if (authState.user && initialAnimationAssetId) {
-      setView("animation");
+      setView("animation", "", false);
       return;
     }
     if (authState.user && initialAssetId) {
-      setView("assets");
+      setView("assets", "", false);
       openAsset(initialAssetId);
+      return;
+    }
+    if (authState.user && validViews.has(viewFromUrl) && viewFromUrl !== "home") {
+      setView(viewFromUrl, "", false);
       return;
     }
     if (!authState.user && new URLSearchParams(window.location.search).get("auth") === "register") openAuth("register");
