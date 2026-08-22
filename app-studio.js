@@ -2,7 +2,7 @@ import { characterCreatorMarkup, setupCharacterCreator } from "/character-creato
 import { assetGeneratorMarkup, setupAssetGenerator } from "/asset-generator.js?v=10";
 import { assetPackMarkup, setupAssetPack } from "/asset-pack.js?v=5";
 import { tilesetMarkup, setupTileset } from "/tileset.js?v=5";
-import { animation4Markup, setupAnimation4 } from "/animation4.js?v=8";
+import { animation4Markup, setupAnimation4 } from "/animation4.js?v=9";
 import { manualEditorMarkup, setupManualEditor } from "/manual-editor.js?v=19";
 import { processPixelGrid, quantizePalette } from "/pixel-grid-core.js?v=2";
 
@@ -299,7 +299,7 @@ export function setupAppStudio({ initialAssetId = "", initialAnimationAssetId = 
     if (!blob) throw new Error("The image could not be converted to pixel art.");
     return blob;
   };
-  const openLibraryImport = () => {
+  const openLibraryImport = (returnView = "assets") => {
     modalRoot.innerHTML = `<div class="studio-overlay"><section class="studio-dialog studio-library-import-dialog" role="dialog" aria-modal="true" aria-label="Add image to library"><header><div><span class="studio-kicker">IMAGE IMPORT</span><h2>Add an image</h2><p>We will convert it into a crisp, game-ready pixel-art asset.</p></div><button data-modal-close type="button">×</button></header><form data-library-import-form><input data-library-import-file type="file" accept="image/png,image/jpeg,image/webp" hidden /><button class="studio-library-dropzone" data-library-import-dropzone type="button"><span>${icon("↑")}</span><b>Drop an image here</b><small>or choose one from your device · PNG, JPG or WebP · max 10 MiB</small></button><div class="studio-library-import-file" data-library-import-file-name>No file selected</div><p class="studio-auth-error" data-library-import-error role="alert" hidden></p><div class="studio-library-import-actions"><small>Your original is converted locally before it is uploaded.</small><button class="studio-library-import-submit" type="submit" disabled>Convert &amp; add asset →</button></div></form></section></div>`;
     wireModal();
     const form = modalRoot.querySelector("[data-library-import-form]"); const input = form.querySelector("[data-library-import-file]"); const zone = form.querySelector("[data-library-import-dropzone]"); const filename = form.querySelector("[data-library-import-file-name]"); const error = form.querySelector("[data-library-import-error]"); const submit = form.querySelector("button[type=submit]");
@@ -318,7 +318,7 @@ export function setupAppStudio({ initialAssetId = "", initialAnimationAssetId = 
         const pixelArt = await pixelateLibraryImage(selectedFile); const name = selectedFile.name.replace(/\.[^.]+$/, "").replace(/[-_]+/g, " ").trim().slice(0, 160) || "Imported pixel art";
         const response = await fetch("/api/editor/uploads", { method: "POST", credentials: "same-origin", headers: { "Content-Type": "image/png", "X-CSRF-Token": csrf(), "X-Asset-Name": encodeURIComponent(name), "X-Asset-Kind": "prop", "X-SpriteForge-Pixel-Art": "1" }, body: pixelArt }); const payload = await response.json();
         if (!response.ok) throw new Error(payload.error || "The image could not be added to your library.");
-        closeModal(); await loadLibrary(); setView("assets"); notify("Image converted to pixel art and added to your library.");
+        closeModal(); await loadLibrary(); setView(returnView); notify("Image converted to pixel art and added to your library.");
       } catch (cause) { error.textContent = cause.message || "The image could not be converted."; error.hidden = false; submit.disabled = false; submit.textContent = "Convert & add asset →"; }
     });
   };
@@ -639,7 +639,7 @@ export function setupAppStudio({ initialAssetId = "", initialAnimationAssetId = 
     content.querySelector("#studio-asset-search")?.addEventListener("input", (event) => { const query = event.target.value.toLowerCase(); content.querySelectorAll(".studio-asset-card").forEach((card) => card.hidden = !card.innerText.toLowerCase().includes(query)); });
     content.querySelectorAll("[data-filter]").forEach((button) => button.addEventListener("click", () => { assetKindFilter = button.dataset.filter || "all"; content.querySelectorAll("[data-filter]").forEach((item) => item.classList.toggle("active", item === button)); content.querySelectorAll(".studio-asset-card").forEach((card) => card.hidden = assetKindFilter !== "all" && !card.innerText.includes(assetKindFilter)); }));
     content.querySelectorAll("[data-project-create]").forEach((button) => button.addEventListener("click", openProjectEditor));
-    content.querySelectorAll("[data-library-import]").forEach((button) => button.addEventListener("click", openLibraryImport));
+    content.querySelectorAll("[data-library-import]").forEach((button) => button.addEventListener("click", () => openLibraryImport(button.dataset.libraryImportReturn || "assets")));
     content.querySelectorAll("[data-project-filter]").forEach((button) => button.addEventListener("click", () => { assetProjectFilter = button.dataset.projectFilter || "all"; setView("assets"); }));
     content.querySelector("#studio-preset-search")?.addEventListener("input", (event) => { const query = event.target.value.toLowerCase(); content.querySelectorAll(".studio-preset-card").forEach((card) => card.hidden = !card.innerText.toLowerCase().includes(query)); });
     content.querySelectorAll("[data-studio-view]").forEach((button) => button.addEventListener("click", () => setView(button.dataset.studioView)));
