@@ -144,6 +144,13 @@
   window.piskelReadyCallbacks = window.piskelReadyCallbacks || [];
   window.piskelReadyCallbacks.push(function () {
     document.title = "SpriteForge · Manual editor";
+    // SpriteForge validates editor limits on save. Piskel's legacy heuristic
+    // warns for normal large sprites and creates an alarming false positive.
+    if (pskl.service.performance?.PerformanceReport) {
+      pskl.service.performance.PerformanceReport.prototype.hasProblem = function () { return false; };
+    }
+    var performanceLink = document.querySelector(".performance-link");
+    if (performanceLink) performanceLink.remove();
     $.subscribe(Events.PISKEL_SAVE_STATE, function () { if (!suppressDirty && initialized) send("spriteforge:dirty"); });
     suppressDirty = false;
     send("spriteforge:ready", { version: pskl._releaseVersion || "0.15.2-SNAPSHOT" });
