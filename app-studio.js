@@ -334,14 +334,6 @@ export function setupAppStudio({ initialAssetId = "", initialAnimationAssetId = 
         setView("manual-editor");
       };
       actionRail.innerHTML = "";
-      if (isEditorAdmin()) {
-        const editButton = document.createElement("button");
-        editButton.className = "studio-viewer-edit";
-        editButton.type = "button";
-        editButton.textContent = "Edit pixel art";
-        editButton.addEventListener("click", openPixelEditor);
-        actionRail.append(editButton);
-      }
       if (!isAnimation) {
         const animateButton = document.createElement("button");
         animateButton.className = "studio-viewer-animate";
