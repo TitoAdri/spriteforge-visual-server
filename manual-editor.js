@@ -11,8 +11,8 @@ const chooser = (assets) => `<section class="manual-editor-chooser" data-editor-
 
 export const manualEditorMarkup = ({ assets = [], assetId = "" } = {}) => `<section class="studio-view manual-editor-view" data-manual-editor data-asset-id="${escapeHtml(assetId)}">
   <header class="manual-editor-toolbar">
-    <div class="manual-editor-identity"><button data-editor-choose type="button">Choose asset</button><button data-editor-upload-open type="button">Upload</button><span data-editor-asset-name>${assetId ? "Loading asset…" : "No asset selected"}</span></div>
-    <div class="manual-editor-tools"><button data-editor-command="preferences" type="button">Preferences</button><button data-editor-command="resize" type="button">Resize</button><button data-editor-command="export" type="button">Export</button><button data-editor-command="contrast" type="button">Contrast</button><button data-editor-command="download" type="button">Download</button><button data-editor-history-toggle type="button">History</button><button class="manual-editor-save" data-editor-save type="button" disabled>Save</button><button data-editor-save-copy type="button" disabled>Save as New</button></div>
+    <div class="manual-editor-identity"><div><span class="manual-editor-kicker">ADMIN TOOL · PIXEL EDITOR</span><b>Manual editor</b></div><span data-editor-asset-name>${assetId ? "Loading asset…" : "No asset selected"}</span></div>
+    <div class="manual-editor-tools"><button data-editor-choose type="button">Change asset</button><button data-editor-history-toggle type="button">History</button><button class="manual-editor-save" data-editor-save type="button" disabled>Save</button><button data-editor-save-copy type="button" disabled>Save as new</button></div>
     <span class="manual-editor-status" data-editor-status>No changes</span>
   </header>
   <div class="manual-editor-history" data-editor-history hidden><header><b>Revision history</b><button data-editor-history-close type="button">×</button></header><div data-editor-history-list><p>No saved revisions yet.</p></div></div>
@@ -101,9 +101,7 @@ export function setupManualEditor({ assets = [], initialAssetId = "", onNavigate
   const beforeUnload = (event) => { if (dirty) { event.preventDefault(); event.returnValue = ""; } };
   window.addEventListener("beforeunload", beforeUnload);
 
-  root.querySelectorAll("[data-editor-command]").forEach((button) => button.addEventListener("click", () => post("spriteforge:command", { command: button.dataset.editorCommand })));
   root.querySelector("[data-editor-choose]").addEventListener("click", () => { picker.hidden = false; });
-  root.querySelector("[data-editor-upload-open]").addEventListener("click", () => { picker.hidden = false; picker.querySelector('input[type="file"]').click(); });
   root.querySelector("[data-editor-history-toggle]").addEventListener("click", () => { history.hidden = !history.hidden; });
   root.querySelector("[data-editor-history-close]").addEventListener("click", () => { history.hidden = true; });
   root.querySelector("[data-editor-save]").addEventListener("click", () => save(false)); root.querySelector("[data-editor-save-copy]").addEventListener("click", () => save(true));
