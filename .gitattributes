@@ -1,0 +1,2 @@
+# Deployment and maintenance scripts must retain Unix line endings inside Linux containers.
+*.sh text eol=lf
