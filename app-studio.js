@@ -563,8 +563,8 @@ export function setupAppStudio({ initialAssetId = "", initialAnimationAssetId = 
     const zoomLabel = modalRoot.querySelector("[data-studio-zoom-label]"); const zoomOut = modalRoot.querySelector("[data-studio-zoom-out]"); const zoomIn = modalRoot.querySelector("[data-studio-zoom-in]"); const previewImage = modalRoot.querySelector(".studio-asset-preview > img");
     if (zoomLabel && zoomOut && zoomIn && previewImage) {
       let scale = 2.5;
-      const renderZoom = () => { previewImage.style.transform = `scale(${scale})`; zoomLabel.textContent = `${scale.toFixed(1)}:1`; zoomOut.disabled = scale <= 0.5; zoomIn.disabled = scale >= 8; };
-      const changeZoom = (amount) => { scale = Math.min(8, Math.max(0.5, Math.round((scale + amount) * 100) / 100)); renderZoom(); };
+      const renderZoom = () => { previewImage.style.transform = `scale(${scale})`; zoomLabel.textContent = `${scale.toFixed(1)}:1`; zoomOut.disabled = scale <= 0.5; zoomIn.disabled = scale >= 16; };
+      const changeZoom = (amount) => { scale = Math.min(16, Math.max(0.5, Math.round((scale + amount) * 100) / 100)); renderZoom(); };
       zoomOut.addEventListener("click", () => changeZoom(-0.5));
       zoomIn.addEventListener("click", () => changeZoom(0.5));
       previewImage.closest(".studio-asset-preview")?.addEventListener("wheel", (event) => { event.preventDefault(); changeZoom(event.deltaY < 0 ? 0.25 : -0.25); }, { passive: false });
