@@ -136,6 +136,8 @@ async function settlePixelEngineJob(request, user, currentJob) {
     const cleaned = job.model.endsWith("+local-rmbg") ? await removeKnownMagentaMatte(output.bytes) : output.bytes;
     const saved = await library.saveAnimationOutput(request, { clipId: job.clip_id, base64: cleaned.toString("base64"), mimeType: "image/webp", model: job.model.replace(/\+local-rmbg$/, ""), prompt: job.prompt });
     library.linkAnimationOutput(job.clip_id, saved.id);
+    try { auth.recordAnalyticsEvent({ eventName: "generation_completed", userId: user.id, product: "animation", metadata: { provider: "pixelengine", model: job.model } }); }
+    catch (analyticsError) { console.warn({ event: "analytics_record_failed", code: analyticsError.code || "analytics_error" }); }
     job = library.updatePixelEngineJob(user.id, job.id, { status: "success", progress: 1, assetId: saved.id, errorCode: null });
     return pixelEngineJobResponse(job, saved);
   }
@@ -190,6 +192,16 @@ http.createServer(async (request, response) => {
     catch (error) { return send(response, error.status || 400, { error: error.message || "Password reset failed", code: error.code || "password_reset_error" }); }
   }
   if (request.method === "GET" && pathname === "/api/billing/catalog") return send(response, 200, publicBillingCatalog());
+  if (request.method === "POST" && pathname === "/api/analytics/events") {
+    try { return send(response, 202, auth.trackAnalyticsEvent(request, await readJson(request, 12_000))); }
+    catch (error) { return send(response, error.status || 400, { error: error.message || "Analytics event rejected", code: error.code || "analytics_error" }); }
+  }
+  if (request.method === "GET" && pathname === "/api/analytics/summary") {
+    try {
+      const query = new URL(request.url || "/", "http://localhost").searchParams;
+      return send(response, 200, auth.analyticsSummary(request, { from: Date.parse(query.get("from") || ""), to: Date.parse(query.get("to") || "") }));
+    } catch (error) { return send(response, error.status || 400, { error: error.message || "Analytics summary unavailable", code: error.code || "analytics_error" }); }
+  }
   if (request.method === "POST" && pathname === "/api/stripe/webhook") {
     try {
       const event = verifyWebhookSignature(await readRaw(request, 1_000_000), request.headers["stripe-signature"]);
@@ -212,6 +224,7 @@ http.createServer(async (request, response) => {
       const plan = billingPlanForId(String(body.planId || ""));
       if (!plan) throw new AuthError(400, "invalid_plan", "Choose a valid billing plan");
       const session = await createCheckout({ user, plan });
+      try { auth.recordAnalyticsEvent({ eventName: "checkout_started", planId: plan.id, userId: user.id, valueCents: Math.round(plan.monthlyUsd * 100), currency: "USD", metadata: { source: "stripe_checkout" } }); } catch (analyticsError) { console.warn({ event: "analytics_record_failed", code: analyticsError.code || "analytics_error" }); }
       return send(response, 200, { url: session.url });
     } catch (error) { console.warn({ event: "stripe_checkout_failed", code: error.code || "stripe_checkout_error", status: error.status || 400 }); return send(response, error.status || 400, { error: error.message || "Checkout could not be started", code: error.code || "stripe_checkout_error" }); }
   }
@@ -371,6 +384,9 @@ http.createServer(async (request, response) => {
     if (packItem) library.completePackItem(debit.user, packItem.id, savedAsset.id);
     if (tilesetTile) library.completeTilesetTile(debit.user, tilesetTile.id, savedAsset.id);
     if (animationFrame) library.completeAnimationFrame(debit.user, animationFrame.id, savedAsset.id);
+    try {
+      auth.recordAnalyticsEvent({ eventName: "generation_completed", userId: debit.user.id, product: body.tileset ? "tileset" : body.assetPack ? "asset_pack" : action === "edit" ? "edit" : String(body.recipe?.assetType || "asset"), metadata: { provider: result.provider, model: result.model } });
+    } catch (analyticsError) { console.warn({ event: "analytics_record_failed", code: analyticsError.code || "analytics_error" }); }
     generationCompleted = true;
     send(response, 200, { provider: result.provider, model: result.model, mimeType: result.mimeType, requestId: result.requestId, interactionId: result.interactionId, creditsCharged: debit.exempt ? 0 : creditCost, asset: savedAsset, imageBase64: result.image.toString("base64") });
   } catch (error) {
