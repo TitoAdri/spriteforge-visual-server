@@ -4,6 +4,7 @@ import { assetPackMarkup, setupAssetPack } from "/asset-pack.js?v=5";
 import { tilesetMarkup, setupTileset } from "/tileset.js?v=5";
 import { animation4Markup, setupAnimation4 } from "/animation4.js?v=7";
 import { manualEditorMarkup, setupManualEditor } from "/manual-editor.js?v=19";
+import { processPixelGrid, quantizePalette } from "/pixel-grid-core.js?v=2";
 
 const asset = (path) => `/assets/${path}`;
 const readableName = (value) => {
@@ -105,7 +106,7 @@ const assetsView = () => {
   const projectCounts = new Map(projects.map((project) => [project.id, assets.filter((item) => item.projectId === project.id).length]));
   const selectedProject = projects.find((project) => project.id === assetProjectFilter);
   const projectLabel = assetProjectFilter === "unorganized" ? "Unorganized" : selectedProject?.name || "All assets";
-  return `<section class="studio-view studio-assets-view"><header class="studio-topbar"><div><span class="studio-kicker">LIBRARY</span><h1>My assets</h1><p>${projectLabel === "All assets" ? "Approved artwork and work in progress, organized by project." : `Assets in ${escape(projectLabel)}.`}</p></div><button class="studio-upload" data-project-create type="button">+ New project</button></header><div class="studio-library-layout"><aside class="studio-library-nav"><button class="${assetProjectFilter === "all" ? "active" : ""}" data-project-filter="all">All assets <b>${assets.length}</b></button><button class="${assetProjectFilter === "unorganized" ? "active" : ""}" data-project-filter="unorganized">Unorganized <b>${assets.filter((item) => !item.projectId).length}</b></button><p>PROJECTS</p>${projects.map((project) => `<button class="${assetProjectFilter === project.id ? "active" : ""}" data-project-filter="${escape(project.id)}">${escape(project.name)} <b>${projectCounts.get(project.id) || 0}</b></button>`).join("")}<button class="studio-new-project" data-project-create type="button">+ New project</button></aside><div class="studio-library-main"><div class="studio-library-toolbar"><label>${icon("⌕")}<input id="studio-asset-search" placeholder="Search assets…" /></label><div class="studio-filter-row"><button class="${assetKindFilter === "all" ? "active" : ""}" data-filter="all">All</button><button class="${assetKindFilter === "Character" ? "active" : ""}" data-filter="Character">Characters</button><button class="${assetKindFilter === "Asset" ? "active" : ""}" data-filter="Asset">Assets</button><button class="${assetKindFilter === "Tileset" ? "active" : ""}" data-filter="Tileset">Tilesets</button><button class="${assetKindFilter === "Pack" ? "active" : ""}" data-filter="Pack">Packs</button><button class="${assetKindFilter === "Animation" ? "active" : ""}" data-filter="Animation">Animations</button></div><span class="studio-library-count">${visibleAssets.length} ${visibleAssets.length === 1 ? "asset" : "assets"}</span></div><div class="studio-assets-grid">${visibleAssets.length ? visibleAssets.map(assetCard).join("") : `<div class="studio-library-empty"><div>${icon("◇")}</div><h2>No assets here yet</h2><p>Generate an asset, then assign it to this project from its viewer.</p><button data-studio-tool="Asset Generator" type="button">Create an asset →</button></div>`}</div></div></div></section>`;
+  return `<section class="studio-view studio-assets-view"><header class="studio-topbar"><div><span class="studio-kicker">LIBRARY</span><h1>My assets</h1><p>${projectLabel === "All assets" ? "Approved artwork and work in progress, organized by project." : `Assets in ${escape(projectLabel)}.`}</p></div><div class="studio-library-header-actions"><button class="studio-library-import" data-library-import type="button">${icon("↑")} Add image</button><button class="studio-upload" data-project-create type="button">+ New project</button></div></header><div class="studio-library-layout"><aside class="studio-library-nav"><button class="${assetProjectFilter === "all" ? "active" : ""}" data-project-filter="all">All assets <b>${assets.length}</b></button><button class="${assetProjectFilter === "unorganized" ? "active" : ""}" data-project-filter="unorganized">Unorganized <b>${assets.filter((item) => !item.projectId).length}</b></button><p>PROJECTS</p>${projects.map((project) => `<button class="${assetProjectFilter === project.id ? "active" : ""}" data-project-filter="${escape(project.id)}">${escape(project.name)} <b>${projectCounts.get(project.id) || 0}</b></button>`).join("")}<button class="studio-new-project" data-project-create type="button">+ New project</button></aside><div class="studio-library-main"><div class="studio-library-toolbar"><label>${icon("⌕")}<input id="studio-asset-search" placeholder="Search assets…" /></label><div class="studio-filter-row"><button class="${assetKindFilter === "all" ? "active" : ""}" data-filter="all">All</button><button class="${assetKindFilter === "Character" ? "active" : ""}" data-filter="Character">Characters</button><button class="${assetKindFilter === "Asset" ? "active" : ""}" data-filter="Asset">Assets</button><button class="${assetKindFilter === "Tileset" ? "active" : ""}" data-filter="Tileset">Tilesets</button><button class="${assetKindFilter === "Pack" ? "active" : ""}" data-filter="Pack">Packs</button><button class="${assetKindFilter === "Animation" ? "active" : ""}" data-filter="Animation">Animations</button></div><span class="studio-library-count">${visibleAssets.length} ${visibleAssets.length === 1 ? "asset" : "assets"}</span></div><div class="studio-assets-grid">${visibleAssets.length ? visibleAssets.map(assetCard).join("") : `<div class="studio-library-empty"><div>${icon("◇")}</div><h2>No assets here yet</h2><p>Generate an asset, then assign it to this project from its viewer.</p><button data-studio-tool="Asset Generator" type="button">Create an asset →</button></div>`}</div></div></div></section>`;
 };
 
 const projectsView = () => `<section class="studio-view studio-projects-view"><header class="studio-topbar"><div><span class="studio-kicker">ORGANIZE</span><h1>Projects</h1><p>Group your sprites, assets, tilesets and animations in private workspaces.</p></div><button class="studio-upload" data-project-create type="button">+ New project</button></header>${projects.length ? `<div class="studio-project-grid">${projects.map((project) => { const projectAssets = assets.filter((item) => item.projectId === project.id); const preview = projectAssets[0]; return `<button class="studio-project-card" data-project-filter="${escape(project.id)}" type="button"><span class="studio-project-art">${preview ? `<img src="${escape(imageSource(preview))}" alt="" />` : `<span>${icon("◇")}</span>`}</span><b>${escape(project.name)}</b><small>${projectAssets.length} ${projectAssets.length === 1 ? "asset" : "assets"}${project.description ? ` · ${escape(project.description)}` : ""}</small><span>Open project →</span></button>`; }).join("")}</div>` : `<section class="studio-project-empty"><div class="studio-project-empty-icon">◇</div><span class="studio-kicker">YOUR PRIVATE WORKSPACES</span><h2>Create your first project</h2><p>Projects are simple folders for keeping related game art together. Give one a name and add assets from their viewers.</p><button data-project-create type="button">Create project →</button></section>`}</section>`;
@@ -274,6 +275,52 @@ export function setupAppStudio({ initialAssetId = "", initialAnimationAssetId = 
     const data = await response.json();
     if (!response.ok) throw new Error(data.error || "Project request failed");
     return data;
+  };
+  const pixelateLibraryImage = async (file) => {
+    const bitmap = await createImageBitmap(file);
+    const maximum = 512;
+    const factor = Math.min(1, maximum / Math.max(bitmap.width, bitmap.height));
+    const width = Math.max(1, Math.round(bitmap.width * factor));
+    const height = Math.max(1, Math.round(bitmap.height * factor));
+    const source = document.createElement("canvas"); source.width = width; source.height = height;
+    const sourceContext = source.getContext("2d", { willReadFrequently: true }); sourceContext.imageSmoothingEnabled = true; sourceContext.drawImage(bitmap, 0, 0, width, height); bitmap.close?.();
+    const sourceData = sourceContext.getImageData(0, 0, width, height);
+    const snapped = processPixelGrid(sourceData, { colors: 32, minimumConfidence: 0.04 });
+    let output = snapped.ok ? snapped.output : null;
+    if (!output) {
+      const longest = Math.max(width, height); const scale = Math.min(1, 96 / longest);
+      const pixelWidth = Math.max(1, Math.round(width * scale)); const pixelHeight = Math.max(1, Math.round(height * scale));
+      const reduced = document.createElement("canvas"); reduced.width = pixelWidth; reduced.height = pixelHeight;
+      const reducedContext = reduced.getContext("2d", { willReadFrequently: true }); reducedContext.imageSmoothingEnabled = true; reducedContext.drawImage(source, 0, 0, pixelWidth, pixelHeight);
+      output = quantizePalette(reducedContext.getImageData(0, 0, pixelWidth, pixelHeight), 32, 0);
+    }
+    const result = document.createElement("canvas"); result.width = output.width; result.height = output.height; result.getContext("2d").putImageData(output, 0, 0);
+    const blob = await new Promise((resolve) => result.toBlob(resolve, "image/png"));
+    if (!blob) throw new Error("The image could not be converted to pixel art.");
+    return blob;
+  };
+  const openLibraryImport = () => {
+    modalRoot.innerHTML = `<div class="studio-overlay"><section class="studio-dialog studio-library-import-dialog" role="dialog" aria-modal="true" aria-label="Add image to library"><header><div><span class="studio-kicker">IMAGE IMPORT</span><h2>Add an image</h2><p>We will convert it into a crisp, game-ready pixel-art asset.</p></div><button data-modal-close type="button">×</button></header><form data-library-import-form><input data-library-import-file type="file" accept="image/png,image/jpeg,image/webp" hidden /><button class="studio-library-dropzone" data-library-import-dropzone type="button"><span>${icon("↑")}</span><b>Drop an image here</b><small>or choose one from your device · PNG, JPG or WebP · max 10 MiB</small></button><div class="studio-library-import-file" data-library-import-file-name>No file selected</div><p class="studio-auth-error" data-library-import-error role="alert" hidden></p><footer><small>Your original is converted locally before it is uploaded.</small><button class="studio-library-import-submit" type="submit" disabled>Convert &amp; add asset →</button></footer></form></section></div>`;
+    wireModal();
+    const form = modalRoot.querySelector("[data-library-import-form]"); const input = form.querySelector("[data-library-import-file]"); const zone = form.querySelector("[data-library-import-dropzone]"); const filename = form.querySelector("[data-library-import-file-name]"); const error = form.querySelector("[data-library-import-error]"); const submit = form.querySelector("button[type=submit]");
+    let selectedFile = null;
+    const choose = (file) => {
+      if (!file) return; error.hidden = true;
+      if (!/^image\/(png|jpeg|webp)$/.test(file.type) || file.size > 10 * 1024 * 1024) { error.textContent = "Choose a PNG, JPG or WebP image smaller than 10 MiB."; error.hidden = false; return; }
+      selectedFile = file; filename.textContent = file.name; submit.disabled = false; zone.classList.add("is-ready");
+    };
+    zone.addEventListener("click", () => input.click()); input.addEventListener("change", () => choose(input.files[0]));
+    zone.addEventListener("dragover", (event) => { event.preventDefault(); zone.classList.add("is-over"); }); zone.addEventListener("dragleave", () => zone.classList.remove("is-over"));
+    zone.addEventListener("drop", (event) => { event.preventDefault(); zone.classList.remove("is-over"); choose(event.dataTransfer.files[0]); });
+    form.addEventListener("submit", async (event) => {
+      event.preventDefault(); if (!selectedFile) return; submit.disabled = true; submit.textContent = "Converting…"; error.hidden = true;
+      try {
+        const pixelArt = await pixelateLibraryImage(selectedFile); const name = selectedFile.name.replace(/\.[^.]+$/, "").replace(/[-_]+/g, " ").trim().slice(0, 160) || "Imported pixel art";
+        const response = await fetch("/api/editor/uploads", { method: "POST", credentials: "same-origin", headers: { "Content-Type": "image/png", "X-CSRF-Token": csrf(), "X-Asset-Name": encodeURIComponent(name), "X-Asset-Kind": "prop", "X-SpriteForge-Pixel-Art": "1" }, body: pixelArt }); const payload = await response.json();
+        if (!response.ok) throw new Error(payload.error || "The image could not be added to your library.");
+        closeModal(); await loadLibrary(); setView("assets"); notify("Image converted to pixel art and added to your library.");
+      } catch (cause) { error.textContent = cause.message || "The image could not be converted."; error.hidden = false; submit.disabled = false; submit.textContent = "Convert & add asset →"; }
+    });
   };
   const openProjectEditor = () => {
     modalRoot.innerHTML = `<div class="studio-overlay"><section class="studio-dialog studio-project-dialog" role="dialog" aria-modal="true" aria-label="Create project"><header><div><span class="studio-kicker">NEW PROJECT</span><h2>Create a project</h2><p>Give your workspace a name, then add assets to it from their viewers.</p></div><button data-modal-close type="button">×</button></header><form class="studio-auth-form studio-project-form"><label>Project name<input name="name" maxlength="160" placeholder="e.g. Moonlit village" autocomplete="off" required /></label><p class="studio-auth-error" role="alert" hidden></p><button type="submit">Create project →</button></form></section></div>`;
@@ -592,6 +639,7 @@ export function setupAppStudio({ initialAssetId = "", initialAnimationAssetId = 
     content.querySelector("#studio-asset-search")?.addEventListener("input", (event) => { const query = event.target.value.toLowerCase(); content.querySelectorAll(".studio-asset-card").forEach((card) => card.hidden = !card.innerText.toLowerCase().includes(query)); });
     content.querySelectorAll("[data-filter]").forEach((button) => button.addEventListener("click", () => { assetKindFilter = button.dataset.filter || "all"; content.querySelectorAll("[data-filter]").forEach((item) => item.classList.toggle("active", item === button)); content.querySelectorAll(".studio-asset-card").forEach((card) => card.hidden = assetKindFilter !== "all" && !card.innerText.includes(assetKindFilter)); }));
     content.querySelectorAll("[data-project-create]").forEach((button) => button.addEventListener("click", openProjectEditor));
+    content.querySelectorAll("[data-library-import]").forEach((button) => button.addEventListener("click", openLibraryImport));
     content.querySelectorAll("[data-project-filter]").forEach((button) => button.addEventListener("click", () => { assetProjectFilter = button.dataset.projectFilter || "all"; setView("assets"); }));
     content.querySelector("#studio-preset-search")?.addEventListener("input", (event) => { const query = event.target.value.toLowerCase(); content.querySelectorAll(".studio-preset-card").forEach((card) => card.hidden = !card.innerText.toLowerCase().includes(query)); });
     content.querySelectorAll("[data-studio-view]").forEach((button) => button.addEventListener("click", () => setView(button.dataset.studioView)));
