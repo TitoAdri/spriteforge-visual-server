@@ -155,7 +155,7 @@
     // product theme last so legacy defaults cannot reintroduce grey surfaces.
     var theme = document.createElement("link");
     theme.rel = "stylesheet";
-    theme.href = "spriteforge-theme.css?v=5";
+    theme.href = "spriteforge-theme.css?v=6";
     document.head.appendChild(theme);
     document.title = "SpriteForge · Manual editor";
     // SpriteForge validates editor limits on save. Piskel's legacy heuristic
@@ -165,21 +165,6 @@
     }
     var performanceLink = document.querySelector(".performance-link");
     if (performanceLink) performanceLink.remove();
-    var coordinates = document.querySelector(".cursor-coordinates");
-    var formatCoordinates = function () {
-      if (!coordinates || coordinates.dataset.spriteforgeInfo === coordinates.textContent) return;
-      var dimensions = coordinates.textContent.match(/\[(\d+)x(\d+)\]/);
-      var zoom = coordinates.textContent.match(/(?:^|\s)x([\d.]+)/);
-      var frame = coordinates.textContent.match(/(\d+)\/(\d+)/);
-      if (!dimensions || !zoom || !frame) return;
-      coordinates.dataset.spriteforgeInfo = coordinates.textContent;
-      coordinates.innerHTML = '<span class="editor-info-size"><b>' + dimensions[1] + ' × ' + dimensions[2] + '</b><small>canvas</small></span><span class="editor-info-zoom">' + Math.round(Number(zoom[1]) * 100) + '%</span><span class="editor-info-frame">Frame ' + frame[1] + ' / ' + frame[2] + '</span>';
-    };
-    if (coordinates) {
-      new MutationObserver(formatCoordinates).observe(coordinates, { childList: true, characterData: true, subtree: true });
-      window.setInterval(formatCoordinates, 250);
-      formatCoordinates();
-    }
     restyleCanvasSurface();
     $.subscribe(Events.PISKEL_SAVE_STATE, function () { if (!suppressDirty && initialized) send("spriteforge:dirty"); });
     suppressDirty = false;
