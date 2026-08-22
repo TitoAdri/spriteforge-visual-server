@@ -22,15 +22,20 @@
     if (!panel || !pskl.app.piskelController) return;
     var controller = pskl.app.piskelController;
     var frameCount = controller.getFrameCount();
-    panel.hidden = frameCount < 2;
-    if (frameCount < 2) return;
+    var toggle = document.querySelector("#spriteforge-reference-toggle");
+    panel.classList.toggle("is-available", frameCount > 1);
+    if (toggle) toggle.disabled = frameCount < 2;
+    if (frameCount < 2) { panel.classList.remove("is-open"); document.querySelector(".main-column").classList.remove("reference-open"); return; }
     var active = controller.getCurrentFrameIndex();
-    if (referenceFrameIndex === null) referenceFrameIndex = Math.max(0, active - 1);
+    if (referenceFrameIndex === null) referenceFrameIndex = active > 0 ? active - 1 : Math.min(frameCount - 1, active + 1);
     referenceFrameIndex = Math.max(0, Math.min(frameCount - 1, referenceFrameIndex));
     var canvas = controller.renderFrameAt(referenceFrameIndex, true);
     var canvasSlot = panel.querySelector("[data-reference-canvas]");
     canvas.className = "spriteforge-reference-canvas";
     canvasSlot.replaceChildren(canvas);
+    var scale = Math.max(1, Math.floor(Math.min(canvasSlot.clientWidth / canvas.width, canvasSlot.clientHeight / canvas.height)));
+    canvas.style.width = (canvas.width * scale) + "px";
+    canvas.style.height = (canvas.height * scale) + "px";
     panel.querySelector("[data-reference-label]").textContent = "Frame " + (referenceFrameIndex + 1) + " of " + frameCount;
     panel.querySelector("[data-reference-prev]").disabled = referenceFrameIndex === 0;
     panel.querySelector("[data-reference-next]").disabled = referenceFrameIndex === frameCount - 1;
@@ -38,15 +43,29 @@
 
   function mountReferencePanel() {
     if (document.querySelector("#spriteforge-reference-frame")) return;
-    var column = document.querySelector(".right-column");
+    var column = document.querySelector(".main-column");
     if (!column) return;
+    var toggle = document.createElement("button");
+    toggle.id = "spriteforge-reference-toggle";
+    toggle.className = "spriteforge-reference-toggle";
+    toggle.type = "button";
+    toggle.disabled = true;
+    toggle.innerHTML = '<span aria-hidden="true">◫</span><span>Reference</span>';
     var panel = document.createElement("section");
     panel.id = "spriteforge-reference-frame";
     panel.className = "spriteforge-reference-frame";
-    panel.innerHTML = '<header><span>Reference</span><div><button type="button" data-reference-prev aria-label="Previous reference frame">‹</button><button type="button" data-reference-next aria-label="Next reference frame">›</button></div></header><div class="spriteforge-reference-meta" data-reference-label></div><div class="spriteforge-reference-canvas-wrap" data-reference-canvas></div><p>Keep another frame visible while you draw.</p>';
+    panel.innerHTML = '<header><div><span>Reference frame</span><small data-reference-label></small></div><div><button type="button" data-reference-prev aria-label="Previous reference frame">‹</button><button type="button" data-reference-next aria-label="Next reference frame">›</button><button type="button" data-reference-close aria-label="Close reference">×</button></div></header><div class="spriteforge-reference-canvas-wrap" data-reference-canvas></div><p>Choose any frame below, then keep it beside the one you are painting.</p>';
+    var togglePanel = function () {
+      var open = !panel.classList.contains("is-open");
+      panel.classList.toggle("is-open", open); column.classList.toggle("reference-open", open);
+      toggle.setAttribute("aria-expanded", String(open)); toggle.classList.toggle("is-open", open);
+      window.setTimeout(function () { window.dispatchEvent(new Event("resize")); $.publish(Events.FRAME_SIZE_CHANGED); renderReferenceFrame(); }, 40);
+    };
+    toggle.addEventListener("click", togglePanel);
     panel.querySelector("[data-reference-prev]").addEventListener("click", function () { referenceFrameIndex = Math.max(0, (referenceFrameIndex === null ? 0 : referenceFrameIndex) - 1); renderReferenceFrame(); });
     panel.querySelector("[data-reference-next]").addEventListener("click", function () { var count = pskl.app.piskelController.getFrameCount(); referenceFrameIndex = Math.min(count - 1, (referenceFrameIndex === null ? 0 : referenceFrameIndex) + 1); renderReferenceFrame(); });
-    column.appendChild(panel);
+    panel.querySelector("[data-reference-close]").addEventListener("click", function () { if (panel.classList.contains("is-open")) togglePanel(); });
+    column.append(toggle, panel);
   }
 
   function restyleCanvasSurface() {
@@ -198,7 +217,7 @@
     // product theme last so legacy defaults cannot reintroduce grey surfaces.
     var theme = document.createElement("link");
     theme.rel = "stylesheet";
-    theme.href = "spriteforge-theme.css?v=9";
+    theme.href = "spriteforge-theme.css?v=10";
     document.head.appendChild(theme);
     document.title = "SpriteForge · Manual editor";
     // SpriteForge validates editor limits on save. Piskel's legacy heuristic
