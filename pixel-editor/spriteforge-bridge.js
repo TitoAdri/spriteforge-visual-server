@@ -10,6 +10,44 @@
   var SOURCE = "spriteforge-pixel-editor";
   var initialized = false;
   var suppressDirty = true;
+  var referenceFrameIndex = null;
+
+  function decorateFrameActions() {
+    document.querySelectorAll(".delete-frame-action").forEach(function (action) { action.setAttribute("title", "Delete frame"); action.setAttribute("aria-label", "Delete frame"); });
+    document.querySelectorAll(".duplicate-frame-action").forEach(function (action) { action.setAttribute("title", "Duplicate frame"); action.setAttribute("aria-label", "Duplicate frame"); });
+  }
+
+  function renderReferenceFrame() {
+    var panel = document.querySelector("#spriteforge-reference-frame");
+    if (!panel || !pskl.app.piskelController) return;
+    var controller = pskl.app.piskelController;
+    var frameCount = controller.getFrameCount();
+    panel.hidden = frameCount < 2;
+    if (frameCount < 2) return;
+    var active = controller.getCurrentFrameIndex();
+    if (referenceFrameIndex === null) referenceFrameIndex = Math.max(0, active - 1);
+    referenceFrameIndex = Math.max(0, Math.min(frameCount - 1, referenceFrameIndex));
+    var canvas = controller.renderFrameAt(referenceFrameIndex, true);
+    var canvasSlot = panel.querySelector("[data-reference-canvas]");
+    canvas.className = "spriteforge-reference-canvas";
+    canvasSlot.replaceChildren(canvas);
+    panel.querySelector("[data-reference-label]").textContent = "Frame " + (referenceFrameIndex + 1) + " of " + frameCount;
+    panel.querySelector("[data-reference-prev]").disabled = referenceFrameIndex === 0;
+    panel.querySelector("[data-reference-next]").disabled = referenceFrameIndex === frameCount - 1;
+  }
+
+  function mountReferencePanel() {
+    if (document.querySelector("#spriteforge-reference-frame")) return;
+    var column = document.querySelector(".right-column");
+    if (!column) return;
+    var panel = document.createElement("section");
+    panel.id = "spriteforge-reference-frame";
+    panel.className = "spriteforge-reference-frame";
+    panel.innerHTML = '<header><span>Reference</span><div><button type="button" data-reference-prev aria-label="Previous reference frame">‹</button><button type="button" data-reference-next aria-label="Next reference frame">›</button></div></header><div class="spriteforge-reference-meta" data-reference-label></div><div class="spriteforge-reference-canvas-wrap" data-reference-canvas></div><p>Keep another frame visible while you draw.</p>';
+    panel.querySelector("[data-reference-prev]").addEventListener("click", function () { referenceFrameIndex = Math.max(0, (referenceFrameIndex === null ? 0 : referenceFrameIndex) - 1); renderReferenceFrame(); });
+    panel.querySelector("[data-reference-next]").addEventListener("click", function () { var count = pskl.app.piskelController.getFrameCount(); referenceFrameIndex = Math.min(count - 1, (referenceFrameIndex === null ? 0 : referenceFrameIndex) + 1); renderReferenceFrame(); });
+    column.appendChild(panel);
+  }
 
   function restyleCanvasSurface() {
     var drawing = document.querySelector("#drawing-canvas-container");
@@ -34,6 +72,8 @@
     }
     window.setTimeout(function () {
       restyleCanvasSurface();
+      decorateFrameActions();
+      renderReferenceFrame();
       suppressDirty = false;
       if (markDirty) send("spriteforge:dirty");
     }, 100);
@@ -158,7 +198,7 @@
     // product theme last so legacy defaults cannot reintroduce grey surfaces.
     var theme = document.createElement("link");
     theme.rel = "stylesheet";
-    theme.href = "spriteforge-theme.css?v=8";
+    theme.href = "spriteforge-theme.css?v=9";
     document.head.appendChild(theme);
     document.title = "SpriteForge · Manual editor";
     // SpriteForge validates editor limits on save. Piskel's legacy heuristic
@@ -175,6 +215,9 @@
     var performanceLink = document.querySelector(".performance-link");
     if (performanceLink) performanceLink.remove();
     restyleCanvasSurface();
+    mountReferencePanel();
+    $.subscribe(Events.PISKEL_RESET, function () { window.setTimeout(function () { decorateFrameActions(); renderReferenceFrame(); }, 0); });
+    $.subscribe(Events.TOOL_RELEASED, function () { window.setTimeout(renderReferenceFrame, 0); });
     $.subscribe(Events.PISKEL_SAVE_STATE, function () { if (!suppressDirty && initialized) send("spriteforge:dirty"); });
     suppressDirty = false;
     send("spriteforge:ready", { version: pskl._releaseVersion || "0.15.2-SNAPSHOT" });
