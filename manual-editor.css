@@ -24,3 +24,10 @@
 .manual-editor-mobile { display: none; padding: 40px 24px; text-align: center; color: #d6c8bd; }.manual-editor-mobile p { color: #96877c; }
 @media (max-width: 1023px) { .manual-editor-toolbar,.manual-editor-stage,.manual-editor-picker,.manual-editor-history { display: none !important; }.manual-editor-view { display: block; min-height: 100vh; }.manual-editor-mobile { display: block; } }
 @media (max-width: 1280px) { .manual-editor-toolbar { grid-template-columns: 1fr auto; }.manual-editor-status { display: none; }.manual-editor-identity [data-editor-asset-name] { max-width: 260px; }.manual-editor-upload { grid-template-columns: 1fr 1fr; } }
+
+/* The editor is a workstation, not a marketing-sized studio panel. */
+@media (min-width: 1024px) {
+  .studio-shell:has(#studio-content > .manual-editor-view),.studio-shell:has(#studio-content > .manual-editor-view) .studio-main { height: 100vh; overflow: hidden; }
+  #studio-content:has(> .manual-editor-view) { height: 100%; }
+  #studio-content > .manual-editor-view { width: 100% !important; max-width: none !important; height: 100%; min-height: 0 !important; margin: 0 !important; }
+}
