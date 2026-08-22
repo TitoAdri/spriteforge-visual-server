@@ -1,4 +1,6 @@
 /* Focused asset viewer: one unobtrusive modal, preview, zoom and exports. */
+/* A details element wraps animated exports; only its summary is a button. */
+.studio-viewer-toolbar details.studio-viewer-download,.studio-viewer-toolbar details.studio-viewer-download:hover{display:block!important;min-height:0!important;padding:0!important;border:0!important;background:transparent!important;box-shadow:none!important;color:inherit!important}
 .studio-overlay:has(.studio-asset-dialog){
   padding:18px!important;
   background:rgba(12,11,10,.48)!important;
