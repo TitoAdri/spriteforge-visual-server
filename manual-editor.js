@@ -5,7 +5,7 @@ const uuid = () => crypto.randomUUID();
 const chooser = (assets) => `<section class="manual-editor-chooser" data-editor-chooser>
   <div class="manual-editor-chooser-head"><div><span>MANUAL EDITOR</span><h2>Choose a pixel art asset</h2><p>Continue an asset from your private library or upload a new image.</p></div><button data-editor-chooser-close type="button" aria-label="Close">×</button></div>
   <label class="manual-editor-search">⌕ <input data-editor-search type="search" placeholder="Search your assets…" /></label>
-  <div class="manual-editor-assets">${assets.filter((item) => /^[0-9a-f-]{36}$/i.test(item.id)).map((item) => `<button data-editor-asset="${escapeHtml(item.id)}" type="button"><span class="checker"><img src="${escapeHtml(item.image?.startsWith("/") ? item.image : `/assets/${item.image}`)}" alt="" /></span><span><b>${escapeHtml(item.name)}</b><small>${escapeHtml(item.type)} · ${escapeHtml(item.project)}</small></span></button>`).join("") || `<p class="manual-editor-empty">No assets yet. Upload a PNG, JPG or WebP to begin.</p>`}</div>
+  <div class="manual-editor-assets">${assets.filter((item) => /^[0-9a-f-]{36}$/i.test(item.id)).map((item) => `<button data-editor-asset="${escapeHtml(item.id)}" data-editor-search-text="${escapeHtml(`${item.name} ${item.type} ${item.project}`.toLowerCase())}" type="button" aria-label="Open ${escapeHtml(item.name)}"><span class="checker"><img src="${escapeHtml(item.image?.startsWith("/") ? item.image : `/assets/${item.image}`)}" alt="" /></span></button>`).join("") || `<p class="manual-editor-empty">No assets yet. Upload a PNG, JPG or WebP to begin.</p>`}</div>
   <form class="manual-editor-upload" data-editor-upload><div><b>Upload a new image</b><small>PNG, JPG or WebP · maximum 10 MiB</small></div><label class="manual-editor-file">Choose image<input name="file" type="file" accept="image/png,image/jpeg,image/webp" required /></label><input name="name" maxlength="160" placeholder="Asset name" required /><select name="kind" aria-label="Asset type"><option value="character">Character</option><option value="prop" selected>Asset / prop</option><option value="tile">Tile</option><option value="ui-icon">UI icon</option><option value="reference">Reference</option></select><button type="submit">Upload and edit →</button><p data-editor-upload-error role="alert" hidden></p></form>
 </section>`;
 
@@ -17,7 +17,7 @@ export const manualEditorMarkup = ({ assets = [], assetId = "" } = {}) => `<sect
   </header>
   <div class="manual-editor-history" data-editor-history hidden><header><b>Revision history</b><button data-editor-history-close type="button">×</button></header><div data-editor-history-list><p>No saved revisions yet.</p></div></div>
   <div class="manual-editor-mobile"><h2>Editor available on desktop</h2><p>Open SpriteForge on a screen at least 1024 px wide to use the full manual editor.</p></div>
-  <div class="manual-editor-stage" data-editor-stage><div class="manual-editor-loading" data-editor-loading><span></span><b>${assetId ? "Loading your editable asset…" : "Choose an asset to start editing"}</b></div><iframe data-editor-frame src="/pixel-editor/index.html?v=16" title="SpriteForge pixel art editor"></iframe></div>
+  <div class="manual-editor-stage" data-editor-stage><div class="manual-editor-loading" data-editor-loading><span></span><b>${assetId ? "Loading your editable asset…" : "Choose an asset to start editing"}</b></div><iframe data-editor-frame src="/pixel-editor/index.html?v=17" title="SpriteForge pixel art editor"></iframe></div>
   <div class="manual-editor-picker" data-editor-picker ${assetId ? "hidden" : ""}>${chooser(assets)}</div>
 </section>`;
 
@@ -116,7 +116,7 @@ export function setupManualEditor({ assets = [], initialAssetId = "", onNavigate
   root.querySelector("[data-editor-history-close]").addEventListener("click", () => { history.hidden = true; });
   root.querySelector("[data-editor-save]").addEventListener("click", () => save(false)); root.querySelector("[data-editor-save-copy]").addEventListener("click", () => save(true));
   picker.querySelector("[data-editor-chooser-close]").addEventListener("click", () => { if (assetId) picker.hidden = true; });
-  picker.querySelector("[data-editor-search]").addEventListener("input", (event) => { const query = event.target.value.toLowerCase(); picker.querySelectorAll("[data-editor-asset]").forEach((button) => { button.hidden = !button.innerText.toLowerCase().includes(query); }); });
+  picker.querySelector("[data-editor-search]").addEventListener("input", (event) => { const query = event.target.value.toLowerCase(); picker.querySelectorAll("[data-editor-asset]").forEach((button) => { button.hidden = !button.dataset.editorSearchText.includes(query); }); });
   picker.querySelectorAll("[data-editor-asset]").forEach((button) => button.addEventListener("click", () => { if (dirty && !window.confirm("Discard unsaved editor changes?")) return; onNavigate?.(button.dataset.editorAsset); }));
   picker.querySelector("[data-editor-upload]").addEventListener("submit", async (event) => {
     event.preventDefault(); const form = event.currentTarget; const file = form.elements.file.files[0]; const error = form.querySelector("[data-editor-upload-error]"); const submit = form.querySelector("button[type=submit]"); error.hidden = true;
