@@ -1,7 +1,7 @@
 import { processPixelGrid, quantizePalette, snapToGrid } from "/pixel-grid-core.js";
 import { characterCreatorMarkup, setupCharacterCreator } from "/character-creator.js?v=26";
 import { assetGeneratorMarkup, setupAssetGenerator } from "/asset-generator.js?v=11";
-import { appStudioMarkup, setupAppStudio } from "/app-studio.js?v=109";
+import { appStudioMarkup, setupAppStudio } from "/app-studio.js?v=110";
 import "/cost-display.js?v=6";
 import "/perspective-assets.js?v=1";
 
@@ -324,9 +324,11 @@ function openMarketingAuth(mode = "login") {
       if (!response.ok) throw new Error(payload.error || "Authentication failed.");
       if (payload.user) { window.location.assign("/app"); return; }
       form.innerHTML = `<div class="marketing-auth-confirmed"><span class="marketing-auth-confirmed-icon" aria-hidden="true">✉</span><div><span class="marketing-auth-kicker">NEXT STEP</span><b>Check your inbox</b><p>We sent a secure verification link to <strong>${String(values.email).replace(/[&<>\"]/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[char]))}</strong>. Click it to activate your account and receive your 40 free Forge credits.</p><small>It can take a minute. Check Spam or Promotions if it is not there.</small></div></div>`;
-    } catch (errorValue) { error.hidden = false; error.textContent = errorValue.message || "Authentication failed."; submit.disabled = false; submit.textContent = register ? "Create secure account →" : "Sign in →"; }
+    } catch (errorValue) { error.hidden = false; error.textContent = errorValue.message || "Authentication failed."; submit.disabled = false; submit.textContent = register ? "Create account →" : "Sign in →"; }
   });
-  document.body.append(overlay); overlay.querySelector("input[type=email]")?.focus();
+  document.body.append(overlay);
+  if (register) overlay.querySelector(".marketing-auth-submit").textContent = "Create account →";
+  overlay.querySelector("input[type=email]")?.focus();
 }
 
 function passwordResetMarkup() {
