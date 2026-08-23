@@ -613,7 +613,7 @@ export function createAuth() {
       } catch (error) { try { db.exec("ROLLBACK"); } catch {} throw error; }
       if (created) recordAnalyticsEvent({ eventName: "signup_verified", userId, metadata: { method: "google" } });
       issueSession(response, request, userId); clearOAuthCookie(response);
-      return publicUser(db.prepare("SELECT * FROM users WHERE id=?").get(userId));
+      return { user: publicUser(db.prepare("SELECT * FROM users WHERE id=?").get(userId)), created };
     },
     debitGeneration(request, idempotencyKey, creditCost = 1, metadata = {}) {
       const session = requireSession(request, { csrf: true });

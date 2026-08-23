@@ -258,7 +258,7 @@ export function setupCharacterCreator({ onSaved, theme = null, themes = [], onTh
       }
       setState("result");
       savedAssetId = payload.asset?.id || null;
-      window.spriteforgeTrackXOnce?.("Generate", { conversion_id: payload.asset?.id || undefined });
+      window.spriteforgeTrackX?.("Generate", { conversion_id: payload.asset?.id || undefined });
       onSaved?.(payload.asset);
     } catch (err) { console.error(err); setState("error", err.message || "The character could not be generated."); }
   });

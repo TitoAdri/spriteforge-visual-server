@@ -5,18 +5,15 @@ if (typeof window.twq === "function") window.twq("config","rekew");
 window.spriteforgeTrackX = (eventName, parameters = {}) => {
   const eventIds = {
     PageView: "tw-rekew-rekfl",
-    SignUp: "tw-rekew-rekfm",
-    Generate: "tw-rekew-rekfq",
-    Purchase: "tw-rekew-rekfr"
+    SignUp: "tw-rekew-remmz",
+    Generate: "tw-rekew-remn0",
+    Purchase: "tw-rekew-remn1"
   };
   const eventId = eventIds[eventName];
   if (eventId && typeof window.twq === "function") window.twq("event", eventId, parameters);
 };
 
-window.spriteforgeTrackXOnce = (eventName, parameters = {}) => {
-  const key = `spriteforge_x_${eventName}`;
-  try { if (window.localStorage.getItem(key)) return; } catch {}
-  window.spriteforgeTrackX(eventName, parameters);
-  try { window.localStorage.setItem(key, "1"); } catch {}
-};
+// Kept as a compatibility alias for older editor modules. X conversion events
+// must be sent once per completed action, not once per browser profile.
+window.spriteforgeTrackXOnce = window.spriteforgeTrackX;
 /* End X conversion tracking base code */

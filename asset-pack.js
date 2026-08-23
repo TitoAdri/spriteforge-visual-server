@@ -70,7 +70,7 @@ export function setupAssetPack({ theme = null, packs = [], onChanged, onNotice }
         const csrf = cookie("spriteforge_csrf"); const response = await fetch("/api/generate", { method: "POST", credentials: "same-origin", headers: { "Content-Type": "application/json", "X-CSRF-Token": csrf, "Idempotency-Key": requestKey() }, body: JSON.stringify(body) }); const payload = await response.json();
         if (!response.ok) throw new Error(payload.error || "Generation request failed.");
         const source = cropForeground(await decode(payload.imageBase64, payload.mimeType)); const automatic = processPixelGrid(source, { minimumConfidence: 0.05 }); const snapped = automatic.ok ? automatic.snapped : forceGrid(source, 48); const clean = removeChromaBleed(removeChromaKey(snapped)); await saveGameReady(payload.asset, clean, csrf);
-        window.spriteforgeTrackXOnce?.("Generate", { conversion_id: payload.asset?.id || undefined }); onNotice?.(`Saved ${item.brief} to ${pack.name}.`); await onChanged?.();
+        window.spriteforgeTrackX?.("Generate", { conversion_id: payload.asset?.id || undefined }); onNotice?.(`Saved ${item.brief} to ${pack.name}.`); await onChanged?.();
       }
     } catch (cause) { const message = cause.message || "The pack queue stopped."; setError(message); onNotice?.(`Asset pack paused: ${message}`); await onChanged?.(); } finally { running = false; }
   };

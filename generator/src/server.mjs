@@ -175,7 +175,11 @@ http.createServer(async (request, response) => {
   }
   if (request.method === "GET" && pathname === "/api/auth/google/callback") {
     const query = new URL(request.url || "/", "http://localhost").searchParams;
-    try { await auth.completeGoogle(request, response, { state: query.get("state"), code: query.get("code") }); response.writeHead(302, { Location: "/app?auth=google", "Cache-Control": "no-store" }); return response.end(); } catch (error) { return send(response, error.status || 400, { error: error.message || "Google sign-in could not be completed", code: error.code || "google_auth_error" }); }
+    try {
+      const result = await auth.completeGoogle(request, response, { state: query.get("state"), code: query.get("code") });
+      const signupQuery = result.created ? `&signup=completed&signup_id=${encodeURIComponent(result.user.id)}` : "";
+      response.writeHead(302, { Location: `/app?auth=google${signupQuery}`, "Cache-Control": "no-store" }); return response.end();
+    } catch (error) { return send(response, error.status || 400, { error: error.message || "Google sign-in could not be completed", code: error.code || "google_auth_error" }); }
   }
   if (request.method === "POST" && pathname === "/api/auth/verify-email") {
     try { return send(response, 200, auth.verifyEmail(request, response, (await readJson(request, 10_000)).token)); } catch (error) { return send(response, error.status || 400, { error: error.message || "Verification failed", code: error.code || "verification_error" }); }

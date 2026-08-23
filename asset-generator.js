@@ -132,7 +132,7 @@ const blob = await new Promise((resolve) => canvas.toBlob(resolve, "image/png"))
 if (blob) { const saved = await fetch(`/api/assets/${payload.asset.id}/files/game-ready`, { method: "PUT", credentials: "same-origin", headers: { "Content-Type": "image/png", "X-CSRF-Token": csrf }, body: blob });
 if (!saved.ok) throw new Error("The asset was generated, but its game-ready version could not be saved.");
 } } savedAssetId = payload.asset?.id || null; setScreen("result");
-window.spriteforgeTrackXOnce?.("Generate", { conversion_id: payload.asset?.id || undefined });
+window.spriteforgeTrackX?.("Generate", { conversion_id: payload.asset?.id || undefined });
 onSaved?.(payload.asset);
 } catch (cause) { console.error(cause);
 setScreen("error", cause.message || "The asset could not be generated.");
