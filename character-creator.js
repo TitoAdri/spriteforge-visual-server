@@ -1,4 +1,5 @@
 import { processPixelGrid, quantizePalette, snapToGrid } from "/pixel-grid-core.js";
+import { clearCreditUpgrade, showCreditUpgrade } from "/credit-alert.js?v=1";
 
 const GRID_SIZES = [8, 16, 24, 32, 48, 64, 128, 256];
 const PALETTE_SIZES = [8, 16, 24, 32, 48, 64, 128, 256];
@@ -229,6 +230,7 @@ export function setupCharacterCreator({ onSaved, theme = null, themes = [], onTh
   root.querySelector("#creator-theme-select")?.addEventListener("click", () => onThemePicker?.());
   form.addEventListener("submit", async (event) => {
     event.preventDefault();
+    clearCreditUpgrade(generateButton);
     const body = { provider: "openai", tier: "draft", themeId: theme?.id || null, recipe: { assetType: "character", subject: root.querySelector("#creator-subject").value.trim(), view: state.view, pose: root.querySelector("#creator-pose").value, target: { width: 64, height: 96 }, palette: { maxColors: 32, mood: "premium game pixel art" }, pixelScale: root.querySelector("#creator-pixel-scale").value, styleTags: [...state.styleTags], lockedTraits: [] } };
     setState("loading");
     try {
@@ -260,7 +262,7 @@ export function setupCharacterCreator({ onSaved, theme = null, themes = [], onTh
       savedAssetId = payload.asset?.id || null;
       window.spriteforgeTrackX?.("Generate", { conversion_id: payload.asset?.id || undefined });
       onSaved?.(payload.asset);
-    } catch (err) { console.error(err); setState("error", err.message || "The character could not be generated."); }
+    } catch (err) { console.error(err); if (!showCreditUpgrade(generateButton, err)) setState("error", err.message || "The character could not be generated."); }
   });
   root.querySelector("#creator-view-app").addEventListener("click", () => {
     if (!savedAssetId) return;

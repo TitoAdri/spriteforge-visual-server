@@ -1,5 +1,6 @@
 import { processPixelGrid } from "/pixel-grid-core.js";
 import { cropForeground, forceGrid, removeChromaBleed, removeChromaKey } from "/character-creator.js?v=18";
+import { clearCreditUpgrade, showCreditUpgrade } from "/credit-alert.js?v=1";
 
 const TYPES = {
   inventory: { label: "Inventory set", description: "Collectibles, consumables and loot", items: [["item", "A brass compass with a cyan needle"], ["item", "A small emerald healing potion"], ["weapon", "A weathered iron short sword"]] },
@@ -61,7 +62,7 @@ export function setupAssetPack({ theme = null, packs = [], onChanged, onNotice }
   root.querySelectorAll("[data-pack-tag]").forEach((button) => button.addEventListener("click", () => { const input = form.elements.tags; const values = new Set(input.value.split(",").map((tag) => tag.trim().toLowerCase()).filter(Boolean)); if (values.has(button.dataset.packTag)) values.delete(button.dataset.packTag); else if (values.size < 8) values.add(button.dataset.packTag); input.value = [...values].join(", "); syncTags(); }));
   root.querySelector("#pack-add-item").addEventListener("click", () => { if (items.length < 12) { items.push({ assetType: "item", brief: "A useful game item with a clear silhouette" }); syncItems(); } });
   const request = async (url, method, body) => { const csrf = cookie("spriteforge_csrf"); if (!csrf) throw new Error("Sign in to create an asset pack."); const response = await fetch(url, { method, credentials: "same-origin", headers: { "Content-Type": "application/json", "X-CSRF-Token": csrf }, body: JSON.stringify(body) }); const payload = await response.json(); if (!response.ok) throw new Error(payload.error || "Asset pack request failed."); return payload; };
-  const runPack = async (pack) => {
+  const runPack = async (pack, trigger = createButton) => {
     if (running) return; running = true; setError();
     try {
       for (const item of pack.items.filter((candidate) => candidate.status === "queued")) {
@@ -72,9 +73,9 @@ export function setupAssetPack({ theme = null, packs = [], onChanged, onNotice }
         const source = cropForeground(await decode(payload.imageBase64, payload.mimeType)); const automatic = processPixelGrid(source, { minimumConfidence: 0.05 }); const snapped = automatic.ok ? automatic.snapped : forceGrid(source, 48); const clean = removeChromaBleed(removeChromaKey(snapped)); await saveGameReady(payload.asset, clean, csrf);
         window.spriteforgeTrackX?.("Generate", { conversion_id: payload.asset?.id || undefined }); onNotice?.(`Saved ${item.brief} to ${pack.name}.`); await onChanged?.();
       }
-    } catch (cause) { const message = cause.message || "The pack queue stopped."; setError(message); onNotice?.(`Asset pack paused: ${message}`); await onChanged?.(); } finally { running = false; }
+    } catch (cause) { const blocked = showCreditUpgrade(trigger, cause); const message = cause.message || "The pack queue stopped."; if (!blocked) { setError(message); onNotice?.(`Asset pack paused: ${message}`); await onChanged?.(); } } finally { running = false; }
   };
-  form.addEventListener("submit", async (event) => { event.preventDefault(); try { setError(); const values = Object.fromEntries(new FormData(form)); const pack = await request("/api/asset-packs", "POST", { name: values.name, packType: values.packType, provider: values.provider, themeId: theme?.id || null, styleTags: values.tags.split(",").map((tag) => tag.trim()).filter(Boolean), settings: { pixelScale: values.pixelScale, view: values.view }, items }); onNotice?.("Asset pack created. Starting its queue."); await runPack(pack); await onChanged?.(); } catch (cause) { setError(cause.message || "The asset pack could not be created."); } });
-  root.querySelectorAll("[data-pack-run]").forEach((button) => button.addEventListener("click", () => runPack(packs.find((pack) => pack.id === button.dataset.packRun))));
-  root.querySelectorAll("[data-pack-retry]").forEach((button) => button.addEventListener("click", async () => { const pack = packs.find((item) => item.id === button.dataset.packRetry); try { for (const item of pack.items.filter((entry) => entry.status === "failed" || entry.status === "running")) await request(`/api/asset-packs/${pack.id}/items/${item.id}/retry`, "POST", {}); await onChanged?.(); onNotice?.("Failed items are queued again."); } catch (cause) { setError(cause.message); } }));
+  form.addEventListener("submit", async (event) => { event.preventDefault(); try { clearCreditUpgrade(createButton); setError(); const values = Object.fromEntries(new FormData(form)); const pack = await request("/api/asset-packs", "POST", { name: values.name, packType: values.packType, provider: values.provider, themeId: theme?.id || null, styleTags: values.tags.split(",").map((tag) => tag.trim()).filter(Boolean), settings: { pixelScale: values.pixelScale, view: values.view }, items }); onNotice?.("Asset pack created. Starting its queue."); await runPack(pack, createButton); await onChanged?.(); } catch (cause) { if (!showCreditUpgrade(createButton, cause)) setError(cause.message || "The asset pack could not be created."); } });
+  root.querySelectorAll("[data-pack-run]").forEach((button) => button.addEventListener("click", () => runPack(packs.find((pack) => pack.id === button.dataset.packRun), button)));
+  root.querySelectorAll("[data-pack-retry]").forEach((button) => button.addEventListener("click", async () => { const pack = packs.find((item) => item.id === button.dataset.packRetry); try { for (const item of pack.items.filter((entry) => entry.status === "failed" || entry.status === "running")) await request(`/api/asset-packs/${pack.id}/items/${item.id}/retry`, "POST", {}); await onChanged?.(); onNotice?.("Failed items are queued again."); } catch (cause) { if (!showCreditUpgrade(button, cause)) setError(cause.message); } }));
 }

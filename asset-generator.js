@@ -1,5 +1,6 @@
 import { processPixelGrid, quantizePalette } from "/pixel-grid-core.js";
 import { cropForeground, forceGrid, removeChromaBleed, removeChromaKey } from "/character-creator.js?v=17";
+import { clearCreditUpgrade, showCreditUpgrade } from "/credit-alert.js?v=1";
 
 const GRID_SIZES = [8, 16, 24, 32, 48, 64, 128, 256];
 const PALETTE_SIZES = [8, 16, 24, 32, 48, 64];
@@ -114,7 +115,7 @@ return;
 } const size = state.mode.size;
 const body = { provider: root.querySelector("#asset-provider").value, tier: "draft", themeId: theme?.id || null, recipe: { assetType: state.mode.type, subject: root.querySelector("#asset-subject").value.trim(), view: root.querySelector("#asset-view").value, lockView: true, pose: "static asset presentation", target: { width: size, height: size }, palette: { maxColors: state.mode.type === "ui-icon" ? 16 : 24, mood: "production-ready game pixel art" }, pixelScale: root.querySelector("#asset-pixel-scale").value, styleTags: [...state.tags], composition: { paddingPercent: state.mode.type === "building" ? 10 : 18, fullBody: false, groundShadow: false }, lockedTraits: [] } };
 setScreen("loading");
-try { const response = await fetch("/api/generate", { method: "POST", credentials: "same-origin", headers: { "Content-Type": "application/json", "X-CSRF-Token": csrf, "Idempotency-Key": generationKey() }, body: JSON.stringify(body) });
+try { clearCreditUpgrade(generateButton); const response = await fetch("/api/generate", { method: "POST", credentials: "same-origin", headers: { "Content-Type": "application/json", "X-CSRF-Token": csrf, "Idempotency-Key": generationKey() }, body: JSON.stringify(body) });
 const payload = await response.json();
 if (!response.ok) throw new Error(payload.code === "generator_disabled" ? "Generation is temporarily disabled by the site owner." : payload.code === "generation_rate_limited" ? payload.error || "Generation limit reached: 10 generations every 5 minutes." : payload.code === "idempotency_required" ? "The request could not be initialised securely. Please try again." : payload.error || "The generation request failed.");
 const original = await decodeImage(payload.imageBase64, payload.mimeType);
@@ -135,7 +136,7 @@ if (!saved.ok) throw new Error("The asset was generated, but its game-ready vers
 window.spriteforgeTrackX?.("Generate", { conversion_id: payload.asset?.id || undefined });
 onSaved?.(payload.asset);
 } catch (cause) { console.error(cause);
-setScreen("error", cause.message || "The asset could not be generated.");
+if (!showCreditUpgrade(generateButton, cause)) setScreen("error", cause.message || "The asset could not be generated.");
 } });
   root.querySelector("#asset-reset").addEventListener("click", () => setScreen("empty"));
 root.querySelectorAll(".asset-palette").forEach((button) => button.addEventListener("click", () => { state.colors = button.dataset.assetColors === "original" ? null : Number(button.dataset.assetColors);
