@@ -1363,3 +1363,6 @@ body[data-spriteforge-theme="glass-forge"] .hero-character-cta input:focus,body[
 /* Empty creator stages are part of the canvas, not an additional card. */
 body[data-spriteforge-theme="glass-forge"] :is(.creator-empty,.asset-empty){background:transparent!important;background-color:transparent!important;background-image:none!important;border:0!important;box-shadow:none!important}
 body[data-spriteforge-theme="glass-forge"] :is(.creator-empty,.asset-empty)::before,body[data-spriteforge-theme="glass-forge"] :is(.creator-empty,.asset-empty)::after{background:transparent!important;background-image:none!important;box-shadow:none!important}
+
+/* Pricing: tax-inclusive label beside each monthly amount. */
+.plan-price::after{content:'VAT included';font-size:11px;font-weight:600;color:var(--gf-muted);letter-spacing:.01em;white-space:nowrap;align-self:center;margin-left:2px}
