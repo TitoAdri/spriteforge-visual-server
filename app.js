@@ -7,6 +7,16 @@ import "/perspective-assets.js?v=1";
 
 const asset = (path) => `/assets/${path}`;
 
+let characterFunnelTheme = null;
+let characterFunnelThemes = [];
+
+const escapeHtml = (value) => String(value ?? "").replace(/[&<>\"]/g, (character) => ({
+  "&": "&amp;",
+  "<": "&lt;",
+  ">": "&gt;",
+  '"': "&quot;"
+}[character]));
+
 const nav = () => `
   <nav class="nav">
     <a class="brand" href="/" data-route="/">
@@ -352,6 +362,43 @@ async function openAppOrAuth(mode = "login") {
   openMarketingAuth(mode);
 }
 
+async function openCharacterFunnelThemePicker() {
+  try {
+    const response = await fetch("/api/library", { credentials: "same-origin", cache: "no-store" });
+    if (response.status === 401 || response.status === 403) {
+      openMarketingAuth("login");
+      return;
+    }
+    const payload = await response.json();
+    if (!response.ok) throw new Error(payload.error || "Could not load your themes.");
+    characterFunnelThemes = Array.isArray(payload.themes) ? payload.themes : [];
+  } catch (error) {
+    window.alert(error.message || "Could not load your themes.");
+    return;
+  }
+
+  const activeThemeId = characterFunnelTheme?.id || "";
+  const overlay = document.createElement("div");
+  overlay.className = "studio-overlay";
+  overlay.innerHTML = `<section class="studio-dialog studio-theme-picker-dialog" role="dialog" aria-modal="true" aria-label="Your themes"><header><div><span class="studio-kicker">YOUR THEMES</span><h2>Choose a visual direction</h2><p>Select the theme this generator should use.</p></div><div class="studio-theme-picker-actions">${activeThemeId ? `<button class="studio-theme-picker-clear" type="button">Remove theme</button>` : ""}<button data-modal-close type="button">×</button></div></header><div class="studio-theme-picker-list">${characterFunnelThemes.length ? characterFunnelThemes.map((theme) => `<button data-picker-theme="${escapeHtml(theme.id)}" class="${theme.id === activeThemeId ? "active" : ""}" type="button"><span><b>${escapeHtml(theme.name)}</b><small>${escapeHtml(theme.direction || "No direction yet.")}</small><em>${escapeHtml(Array.isArray(theme.styleTags) && theme.styleTags.length ? theme.styleTags.join(" · ") : "No tags")}</em></span>${theme.isDefault ? "<mark>Default</mark>" : ""}<i>→</i></button>`).join("") : `<div class="studio-theme-picker-empty"><b>No themes yet</b><span>Create a theme in your workspace first, then return here to reuse its visual direction.</span></div>`}</div></section>`;
+  const close = () => overlay.remove();
+  overlay.querySelector("[data-modal-close]")?.addEventListener("click", close);
+  overlay.addEventListener("click", (event) => { if (event.target === overlay) close(); });
+  overlay.addEventListener("keydown", (event) => { if (event.key === "Escape") close(); });
+  overlay.querySelectorAll("[data-picker-theme]").forEach((button) => button.addEventListener("click", () => {
+    characterFunnelTheme = characterFunnelThemes.find((theme) => theme.id === button.dataset.pickerTheme) || null;
+    close();
+    render();
+  }));
+  overlay.querySelector(".studio-theme-picker-clear")?.addEventListener("click", () => {
+    characterFunnelTheme = null;
+    close();
+    render();
+  });
+  document.body.append(overlay);
+  overlay.querySelector("[data-picker-theme].active")?.focus();
+}
+
 function continuePendingCharacter() {
   const brief = localStorage.getItem("spriteforge_pending_character_brief");
   if (!brief) return false;
@@ -423,7 +470,7 @@ function render() {
     fetch("/api/auth/me", { credentials: "same-origin", cache: "no-store" }).then((response) => response.json()).then(async (state) => { if (state?.user) { const query = new URLSearchParams(window.location.search); if (query.get("signup") === "completed") { window.spriteforgeTrackX?.("SignUp", { status: "completed", conversion_id: query.get("signup_id") || undefined }); query.delete("auth"); query.delete("signup"); query.delete("signup_id"); history.replaceState({}, "", `/app${query.toString() ? `?${query}` : ""}`); } if (continuePendingCharacter()) return; if (await continuePendingAnimationUpload()) return; root.innerHTML = appStudioMarkup(); setupAppStudio({ initialAssetId: query.get("asset") || "", initialAnimationAssetId: query.get("animate") || "", initialEditorAssetId: query.get("edit") || "" }); return; } history.replaceState({}, "", "/"); render(); openMarketingAuth("login"); }).catch(() => { history.replaceState({}, "", "/"); render(); openMarketingAuth("login"); });
     return;
   }
-  document.querySelector("#app").innerHTML = legalRoutes[path]?.() || (path === "/pricing" ? pricing() : path === "/docs" ? docs() : path === "/verify-email" ? `<main class="verification-page"><section class="verification-card"><img src="/assets/spriteforge-logo.png" alt="SpriteForge" /><span class="eyebrow">SPRITEFORGE ACCOUNT</span><span class="verification-orb" aria-hidden="true">✦</span><h1>Email verification</h1><p id="verify-email-status" data-state="loading">Verifying your email securely…</p><a class="verification-cta" href="/app" data-route="/app">Open workspace <b>→</b></a><small>Secure verification · Credits are granted once only.</small></section></main>` : path === "/app" ? appStudioMarkup() : path === "/pixel-grid-detector" ? pixelDetector() : path === "/tileset-base-generator" ? tileset() : path === "/character-creator" ? `${nav()}${characterCreatorMarkup()}` : path === "/asset-generator" ? `${nav()}${assetGeneratorMarkup()}${footerNoDiscord()}` : home());
+  document.querySelector("#app").innerHTML = legalRoutes[path]?.() || (path === "/pricing" ? pricing() : path === "/docs" ? docs() : path === "/verify-email" ? `<main class="verification-page"><section class="verification-card"><img src="/assets/spriteforge-logo.png" alt="SpriteForge" /><span class="eyebrow">SPRITEFORGE ACCOUNT</span><span class="verification-orb" aria-hidden="true">✦</span><h1>Email verification</h1><p id="verify-email-status" data-state="loading">Verifying your email securely…</p><a class="verification-cta" href="/app" data-route="/app">Open workspace <b>→</b></a><small>Secure verification · Credits are granted once only.</small></section></main>` : path === "/app" ? appStudioMarkup() : path === "/pixel-grid-detector" ? pixelDetector() : path === "/tileset-base-generator" ? tileset() : path === "/character-creator" ? `${nav()}${characterCreatorMarkup({ theme: characterFunnelTheme, themes: characterFunnelThemes })}` : path === "/asset-generator" ? `${nav()}${assetGeneratorMarkup()}${footerNoDiscord()}` : home());
   document.querySelectorAll("[data-route]").forEach((link) => link.addEventListener("click", (event) => { event.preventDefault(); const href = link.getAttribute("href"); if (href === "/app") { openAppOrAuth("login"); return; } history.pushState({}, "", href); render(); window.scrollTo(0, 0); }));
   document.querySelectorAll(".footer-cta button").forEach((button) => button.addEventListener("click", () => openMarketingAuth("register")));
   document.querySelector("#hero-character-form")?.addEventListener("submit", async (event) => {
@@ -464,7 +511,7 @@ function render() {
     } catch (error) { button.disabled = false; button.textContent = `Choose ${planId[0].toUpperCase()}${planId.slice(1)} →`; window.alert(error.message || "Checkout could not be started."); }
   }));
   if (path === "/pixel-grid-detector") setupGridTool();
-  if (path === "/character-creator") setupCharacterCreator();
+  if (path === "/character-creator") setupCharacterCreator({ theme: characterFunnelTheme, themes: characterFunnelThemes, onThemePicker: openCharacterFunnelThemePicker });
   if (path === "/asset-generator") setupAssetGenerator();
   if (path === "/verify-email") {
     const status = document.querySelector("#verify-email-status"); const token = new URLSearchParams(window.location.search).get("token");
