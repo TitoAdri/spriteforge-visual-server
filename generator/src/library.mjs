@@ -416,14 +416,12 @@ export function createLibrary(auth) {
     ];
     const find = db.prepare("SELECT id FROM themes WHERE user_id = ? AND name = ? AND is_archived = 0");
     const insert = db.prepare("INSERT INTO themes (id, user_id, project_id, name, version, direction, style_tags_json, settings_json, created_at, updated_at) VALUES (?, ?, NULL, ?, 1, ?, ?, ?, ?, ?)");
-    const time = now(); let twilightId = null;
+    const time = now();
     for (const starter of starters) {
       const existing = find.get(userId, starter.name);
-      if (existing) { if (starter.name === "Twilight Fantasy") twilightId = existing.id; continue; }
+      if (existing) continue;
       const themeId = id(); insert.run(themeId, userId, starter.name, starter.direction, JSON.stringify(starter.tags), JSON.stringify(starter.settings), time, time);
-      if (starter.name === "Twilight Fantasy") twilightId = themeId;
     }
-    if (!db.prepare("SELECT 1 FROM user_theme_preferences WHERE user_id = ?").get(userId) && twilightId) db.prepare("INSERT INTO user_theme_preferences (user_id, default_theme_id, updated_at) VALUES (?, ?, ?)").run(userId, twilightId, time);
   };
 
   const editorAnimationImport = async (asset) => {
