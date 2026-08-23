@@ -1,5 +1,5 @@
 import { processPixelGrid, quantizePalette, snapToGrid } from "/pixel-grid-core.js";
-import { characterCreatorMarkup, setupCharacterCreator } from "/character-creator.js?v=26";
+import { characterCreatorMarkup, setupCharacterCreator } from "/character-creator.js?v=27";
 import { assetGeneratorMarkup, setupAssetGenerator } from "/asset-generator.js?v=11";
 import { appStudioMarkup, setupAppStudio } from "/app-studio.js?v=111";
 import "/cost-display.js?v=6";

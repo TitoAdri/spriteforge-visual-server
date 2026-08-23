@@ -1,4 +1,4 @@
-import { characterCreatorMarkup, setupCharacterCreator } from "/character-creator.js?v=26";
+import { characterCreatorMarkup, setupCharacterCreator } from "/character-creator.js?v=27";
 import { assetGeneratorMarkup, setupAssetGenerator } from "/asset-generator.js?v=10";
 import { assetPackMarkup, setupAssetPack } from "/asset-pack.js?v=5";
 import { tilesetMarkup, setupTileset } from "/tileset.js?v=5";
