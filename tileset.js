@@ -1,5 +1,5 @@
 import { processPixelGrid, quantizePalette } from "/pixel-grid-core.js";
-import { clearCreditUpgrade, showCreditUpgrade } from "/credit-alert.js?v=1";
+import { clearCreditUpgrade, showCreditUpgrade } from "/credit-alert.js?v=2";
 
 const TAGS = ["cozy", "rpg", "stardew-valley-like", "dark fantasy", "cute", "cyberpunk", "dungeon crawler", "handheld retro", "fantasy", "sci-fi", "medieval", "post-apocalyptic", "horror", "mystical", "whimsical", "farm sim", "roguelike", "metroidvania", "soulslike", "jrpg", "adventure", "platformer", "arcade"];
 const TYPES = {

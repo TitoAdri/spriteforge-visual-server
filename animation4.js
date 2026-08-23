@@ -1,4 +1,4 @@
-import { clearCreditUpgrade, showCreditUpgrade } from "/credit-alert.js?v=1";
+import { clearCreditUpgrade, showCreditUpgrade } from "/credit-alert.js?v=2";
 
 const MOTIONS = {
   idle: { title: "Idle", frames: 6, prompt: "Create an in-place idle loop. The character breathes subtly, shifts weight once, keeps both feet planted on the same ground line, then returns exactly to the starting pose. Preserve identity, scale and facing direction." },
