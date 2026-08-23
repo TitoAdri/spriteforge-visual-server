@@ -476,7 +476,7 @@ export function setupAppStudio({ initialAssetId = "", initialAnimationAssetId = 
     if (!planId) return;
     query.delete("auth"); query.delete("plan"); history.replaceState({}, "", `/app${query.toString() ? `?${query}` : ""}`);
     try {
-      const response = await fetch("/api/billing/checkout", { method: "POST", credentials: "same-origin", headers: { "Content-Type": "application/json", "X-CSRF-Token": csrf() }, body: JSON.stringify({ planId }) });
+      const response = await fetch("/api/billing/checkout", { method: "POST", credentials: "same-origin", headers: { "Content-Type": "application/json", "X-CSRF-Token": csrf() }, body: JSON.stringify({ planId, attribution: window.spriteforgeGetAttribution?.() || undefined }) });
       const data = await response.json(); if (!response.ok || !data.url) throw new Error(data.error || "Checkout is not ready yet");
       window.location.assign(data.url);
     } catch (error) { notify(error.message || "Checkout could not be started."); }

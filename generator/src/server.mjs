@@ -28,6 +28,12 @@ const boundedEnvInt = (name, fallback, minimum, maximum) => {
 };
 const RATE_LIMIT_WINDOW_MS = boundedEnvInt("SPRITEFORGE_GENERATION_RATE_LIMIT_WINDOW_MS", 5 * 60 * 1000, 60 * 1000, 60 * 60 * 1000);
 const RATE_LIMIT_MAX_REQUESTS = boundedEnvInt("SPRITEFORGE_GENERATION_RATE_LIMIT_MAX", 10, 1, 100);
+const ANALYTICS_UTM_KEYS = ["utm_source", "utm_medium", "utm_campaign", "utm_ad", "utm_audience", "utm_term", "utm_content", "utm_id"];
+const normalizeAttribution = (value) => {
+  if (!value || typeof value !== "object") return null;
+  const result = Object.fromEntries(ANALYTICS_UTM_KEYS.map((key) => [key, String(value[key] || "").trim().slice(0, 160)]).filter(([, item]) => item));
+  return Object.keys(result).length ? result : null;
+};
 const auth = createAuth();
 const library = createLibrary(auth);
 
@@ -224,11 +230,11 @@ http.createServer(async (request, response) => {
   }
   if (request.method === "POST" && pathname === "/api/billing/checkout") {
     try {
-      const body = await readJson(request, 10_000); const user = auth.requireVerified(request, { csrf: true });
+      const body = await readJson(request, 10_000); const user = auth.requireVerified(request, { csrf: true }); const attribution = normalizeAttribution(body.attribution);
       const plan = billingPlanForId(String(body.planId || ""));
       if (!plan) throw new AuthError(400, "invalid_plan", "Choose a valid billing plan");
-      const session = await createCheckout({ user, plan });
-      try { auth.recordAnalyticsEvent({ eventName: "checkout_started", planId: plan.id, userId: user.id, valueCents: Math.round(plan.monthlyUsd * 100), currency: "USD", metadata: { source: "stripe_checkout" } }); } catch (analyticsError) { console.warn({ event: "analytics_record_failed", code: analyticsError.code || "analytics_error" }); }
+      const session = await createCheckout({ user, plan, attribution });
+      try { auth.recordAnalyticsEvent({ eventName: "checkout_started", planId: plan.id, userId: user.id, valueCents: Math.round(plan.monthlyUsd * 100), currency: "USD", metadata: { source: "stripe_checkout", ...(attribution ? { attribution } : {}) } }); } catch (analyticsError) { console.warn({ event: "analytics_record_failed", code: analyticsError.code || "analytics_error" }); }
       return send(response, 200, { url: session.url });
     } catch (error) { console.warn({ event: "stripe_checkout_failed", code: error.code || "stripe_checkout_error", status: error.status || 400 }); return send(response, error.status || 400, { error: error.message || "Checkout could not be started", code: error.code || "stripe_checkout_error" }); }
   }

@@ -38,10 +38,11 @@ async function stripeForm(path, params, idempotencyKey) {
   return result;
 }
 
-export async function createCheckout({ user, plan }) {
+export async function createCheckout({ user, plan, attribution = null }) {
   const priceId = process.env[plan.stripePriceEnv];
   if (!priceId) throw new AuthError(503, "billing_not_configured", "This plan is not configured yet");
   const baseUrl = endpoint();
+  const attributionMetadata = Object.fromEntries(Object.entries(attribution || {}).flatMap(([key, value]) => [[`metadata[${key}]`, value], [`subscription_data[metadata][${key}]`, value]]));
   return stripeForm("/checkout/sessions", {
     mode: "subscription",
     "line_items[0][price]": priceId,
@@ -54,6 +55,7 @@ export async function createCheckout({ user, plan }) {
     "metadata[plan_id]": plan.id,
     "subscription_data[metadata][user_id]": user.id,
     "subscription_data[metadata][plan_id]": plan.id,
+    ...attributionMetadata,
   });
 }
 
