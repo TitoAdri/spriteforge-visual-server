@@ -70,7 +70,7 @@ const studioSidebar = () => `<aside class="studio-sidebar">
     <button data-studio-tool="Asset Generator">${icon("✧")}<span>Asset generator</span></button>
     <button data-studio-tool="Tileset">${icon("▤")}<span>Tileset</span></button>
     <button data-studio-tool="Animation">${icon("▷")}<span>Animation</span></button>
-    <button data-studio-tool="Manual Editor">${icon("✎")}<span>Manual editor</span></button>
+    <button data-studio-tool="Manual Editor">${icon("✎")}<span>Pixel Editor</span></button>
   </nav>
   <div class="studio-sidebar-bottom"><a href="/" data-route="/">${icon("←")}<span>Marketing site</span></a><a class="studio-upgrade-cta" href="/pricing" data-route="/pricing" title="Update plan" aria-label="Update plan" hidden><span class="studio-upgrade-icon" aria-hidden="true">↗</span><span>Update plan</span></a><button class="studio-user" data-auth-action="login" type="button"><span>→</span><b>Sign in</b>${icon("⌄")}</button></div>
 </aside>`;
