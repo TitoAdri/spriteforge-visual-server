@@ -1370,6 +1370,15 @@ body[data-spriteforge-theme="glass-forge"] :is(.creator-empty,.asset-empty)::bef
 body[data-spriteforge-theme="glass-forge"] .pricing-grid .plan-card .plan-price{position:relative!important;padding-bottom:18px!important}
 body[data-spriteforge-theme="glass-forge"] .pricing-grid .plan-card .plan-price::after{position:absolute!important;left:0!important;right:auto!important;top:auto!important;bottom:0!important;display:block!important;margin:0!important;transform:none!important}
 
+/* The compact sidebar uses a larger, high-contrast tile so the upgrade action
+   reads as a deliberate CTA instead of a floating dark icon. */
+body[data-spriteforge-theme="glass-forge"] .studio-upgrade-cta{background:linear-gradient(135deg,#ff6428 0%,#ff8d32 52%,#ffc857 100%)!important;border:1px solid #ffb26a!important;color:#211108!important;box-shadow:0 9px 22px #ff742e66!important}
+body[data-spriteforge-theme="glass-forge"] .studio-upgrade-cta:hover{background:linear-gradient(135deg,#ff7132 0%,#ffa03e 52%,#ffd66e 100%)!important;box-shadow:0 12px 27px #ff742e99!important}
+body[data-spriteforge-theme="glass-forge"] .studio-upgrade-cta .studio-upgrade-icon{background:transparent!important;color:inherit!important}
+@media(min-width:661px){
+  body[data-spriteforge-theme="glass-forge"] .studio-upgrade-cta:hover::after{content:"Update plan";position:absolute;left:calc(100% + 9px);top:50%;z-index:90;transform:translateY(-50%);padding:7px 9px;border:1px solid #4f4f4f;border-radius:7px;background:#252525;color:#f5f5f5;font:800 11px/1 Inter,ui-sans-serif,system-ui,sans-serif;white-space:nowrap;box-shadow:0 10px 24px #0008;pointer-events:none}
+}
+
 /* Keep the free-plan upgrade action discoverable in the compact sidebar. */
 @media(min-width:661px){
   .studio-upgrade-cta{width:38px;height:38px;box-sizing:border-box;margin:0 auto 1px;padding:4px;border-radius:10px}
