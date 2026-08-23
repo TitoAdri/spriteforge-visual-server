@@ -1387,6 +1387,8 @@ body[data-spriteforge-theme="glass-forge"] .creator-generate{border-color:#ffb26
 body[data-spriteforge-theme="glass-forge"] .creator-generate:hover{background:linear-gradient(135deg,#ff7132 0%,#ffa03e 52%,#ffd66e 100%)!important;border-color:#ffd08a!important;color:#211108!important;box-shadow:0 12px 27px #ff742e80!important}
 body[data-spriteforge-theme="glass-forge"] #creator-generate{border-color:#ffb26a!important;background:linear-gradient(135deg,#ff6428 0%,#ff8d32 52%,#ffc857 100%)!important;color:#211108!important;box-shadow:0 9px 22px #ff742e4d!important}
 body[data-spriteforge-theme="glass-forge"] #creator-generate:hover{background:linear-gradient(135deg,#ff7132 0%,#ffa03e 52%,#ffd66e 100%)!important;border-color:#ffd08a!important;color:#211108!important;box-shadow:0 12px 27px #ff742e80!important}
+body[data-spriteforge-theme="glass-forge"] #creator-animate{border-color:#ffb26a!important;background:linear-gradient(135deg,#ff6428 0%,#ff8d32 52%,#ffc857 100%)!important;color:#211108!important;box-shadow:0 9px 22px #ff742e4d!important}
+body[data-spriteforge-theme="glass-forge"] #creator-animate:hover{background:linear-gradient(135deg,#ff7132 0%,#ffa03e 52%,#ffd66e 100%)!important;border-color:#ffd08a!important;color:#211108!important;box-shadow:0 12px 27px #ff742e80!important}
 
 /* The compact sidebar uses a larger, high-contrast tile so the upgrade action
    reads as a deliberate CTA instead of a floating dark icon. */
