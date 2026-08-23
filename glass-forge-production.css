@@ -1378,6 +1378,10 @@ body[data-spriteforge-theme="glass-forge"] .pricing-grid .plan-card button{borde
 body[data-spriteforge-theme="glass-forge"] .pricing-grid .plan-card button:hover{background:linear-gradient(135deg,#ff7132 0%,#ffa03e 52%,#ffd66e 100%)!important;box-shadow:0 12px 27px #ff742e80!important}
 body[data-spriteforge-theme="glass-forge"] .pricing-grid .plan-badge{border:1px solid #ffb26a!important;background:linear-gradient(135deg,#ff6428 0%,#ff8d32 52%,#ffc857 100%)!important;color:#211108!important;box-shadow:0 7px 18px #ff742e4d!important}
 
+/* Match the marketing hero's Create action to the orange conversion CTAs. */
+body[data-spriteforge-theme="glass-forge"] .hero-character-cta button{border-color:#ffb26a!important;background:linear-gradient(135deg,#ff6428 0%,#ff8d32 52%,#ffc857 100%)!important;color:#211108!important;box-shadow:0 9px 22px #ff742e4d!important}
+body[data-spriteforge-theme="glass-forge"] .hero-character-cta button:hover{background:linear-gradient(135deg,#ff7132 0%,#ffa03e 52%,#ffd66e 100%)!important;border-color:#ffd08a!important;color:#211108!important;box-shadow:0 12px 27px #ff742e80!important}
+
 /* The compact sidebar uses a larger, high-contrast tile so the upgrade action
    reads as a deliberate CTA instead of a floating dark icon. */
 body[data-spriteforge-theme="glass-forge"] .studio-upgrade-cta{background:linear-gradient(135deg,#ff6428 0%,#ff8d32 52%,#ffc857 100%)!important;border:1px solid #ffb26a!important;color:#211108!important;box-shadow:0 9px 22px #ff742e66!important}
