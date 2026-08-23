@@ -1407,3 +1407,22 @@ body[data-spriteforge-theme="glass-forge"] .studio-upgrade-cta .studio-upgrade-i
   .studio-upgrade-cta .studio-upgrade-icon{display:grid!important;flex:none;width:21px;height:21px;font-size:13px}
   body[data-spriteforge-theme="glass-forge"] .studio-upgrade-cta:hover::after{display:none}
 }
+
+/* Reading-first sizing pass for the workspace and every generator. */
+body[data-spriteforge-theme="glass-forge"] .studio-shell :is(.studio-primary button,.studio-sidebar-bottom>a,.studio-user,.studio-library-nav button,.studio-filter-row button,.studio-tool-launcher button,.studio-section-title>button,.studio-type-select,.studio-generator-select){font-size:14px!important}
+body[data-spriteforge-theme="glass-forge"] .studio-shell :is(.studio-sidebar-label,.studio-kicker,.studio-library-count,.studio-card-more,.studio-topbar p,.studio-asset-copy small,.studio-library-toolbar label){font-size:12px!important;line-height:1.45!important}
+body[data-spriteforge-theme="glass-forge"] .studio-shell small{font-size:12px!important;line-height:1.45!important}
+body[data-spriteforge-theme="glass-forge"] .studio-shell :is(.studio-tool-launcher b,.studio-section-title h2,.studio-asset-copy b){font-size:14px!important}
+body[data-spriteforge-theme="glass-forge"] .studio-shell :is(input,textarea,select){font-size:15px!important}
+
+body[data-spriteforge-theme="glass-forge"] :is(.creator-page,.asset-page,.studio-asset-pack-view,.studio-tileset-view,.studio-animation-view,.studio-animation2-view,.studio-animation3-view,.studio-animation4-view,.a4-view,.tool-page) :is(small,.creator-field>span,.asset-field>span,.pack-form label>span,.pack-form>section>span,.tileset-form label>span,.tileset-form>section>span,.animation-field>span,.animation3-field>span,.a4-step label,.a4-options label,.a4-stage-head span,.animation-library>header span,.animation3-results>header span){font-size:12px!important;line-height:1.45!important}
+body[data-spriteforge-theme="glass-forge"] :is(.creator-page,.asset-page,.studio-asset-pack-view,.studio-tileset-view,.studio-animation-view,.studio-animation2-view,.studio-animation3-view,.studio-animation4-view,.a4-view,.tool-page) :is(input,textarea,select){font-size:15px!important}
+body[data-spriteforge-theme="glass-forge"] :is(.creator-page,.asset-page,.studio-asset-pack-view,.studio-tileset-view,.studio-animation-view,.studio-animation2-view,.studio-animation3-view,.studio-animation4-view,.a4-view,.tool-page) :is(.style-tag,.creator-tag,.asset-tag,.pack-tags button,.tileset-tags button,.animation-motion-card,.animation3-motions button,.a4-motions button,.a4-source,.asset-chip,.tag){font-size:12px!important}
+body[data-spriteforge-theme="glass-forge"] :is(.creator-page,.asset-page,.studio-asset-pack-view,.studio-tileset-view,.studio-animation-view,.studio-animation2-view,.studio-animation3-view,.studio-animation4-view,.a4-view,.tool-page) :is(button,a){font-size:13px}
+body[data-spriteforge-theme="glass-forge"] :is(.creator-page,.asset-page) :is(.creator-result-head span,.asset-result-head span,.creator-compare figcaption,.asset-compare figcaption){font-size:12px!important}
+body[data-spriteforge-theme="glass-forge"] :is(.creator-page,.asset-page) :is(.creator-theme-select b,.asset-theme-summary b){font-size:14px!important}
+body[data-spriteforge-theme="glass-forge"] :is(.creator-page,.asset-page) :is(.creator-theme-select small,.asset-theme-summary small,.creator-theme-select em){font-size:12px!important}
+
+/* The secondary character actions share one quiet treatment. */
+body[data-spriteforge-theme="glass-forge"] :is(.creator-result-next-actions #creator-edit,.creator-result-next-actions #creator-view-app){background:#2e2e2e!important;color:#d7d7d7!important;border-color:var(--border)!important;box-shadow:none!important}
+body[data-spriteforge-theme="glass-forge"] :is(.creator-result-next-actions #creator-edit,.creator-result-next-actions #creator-view-app):hover{background:#3a3a3a!important;color:#f3f3f3!important;border-color:#666!important}
