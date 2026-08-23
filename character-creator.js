@@ -246,7 +246,7 @@ export function setupCharacterCreator({ onSaved, theme = null, themes = [], onTh
       state.gridSize = null;
       state.colors = null;
       put(root.querySelector("#creator-original"), original);
-      root.querySelector("#creator-result-note").textContent = `Transparent PNG · ${payload.provider === "gemini" ? "Nano Banana 2" : "GPT Image 2"} · processed locally`;
+      root.querySelector("#creator-result-note").textContent = "Transparent PNG";
       renderGameReady();
       if (payload.asset?.id && finalImage) {
         const canvas = document.createElement("canvas"); put(canvas, finalImage);
