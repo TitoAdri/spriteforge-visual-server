@@ -1381,8 +1381,9 @@ body[data-spriteforge-theme="glass-forge"] .studio-upgrade-cta .studio-upgrade-i
 
 /* Keep the free-plan upgrade action discoverable in the compact sidebar. */
 @media(min-width:661px){
-  .studio-upgrade-cta{width:100%;height:auto;min-height:38px;box-sizing:border-box;margin:0;padding:8px 11px;border-radius:10px;justify-content:flex-start}
+  .studio-sidebar-bottom{gap:5px}
+  .studio-upgrade-cta{width:100%;height:auto;min-height:30px;box-sizing:border-box;margin:0;padding:3px 10px;border-radius:8px;justify-content:flex-start}
   .studio-upgrade-cta>span:last-child{display:inline!important;white-space:nowrap}
-  .studio-upgrade-cta .studio-upgrade-icon{display:grid!important;flex:none;width:27px;height:27px;font-size:17px}
+  .studio-upgrade-cta .studio-upgrade-icon{display:grid!important;flex:none;width:22px;height:22px;font-size:14px}
   body[data-spriteforge-theme="glass-forge"] .studio-upgrade-cta:hover::after{display:none}
 }
