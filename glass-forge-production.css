@@ -1367,3 +1367,5 @@ body[data-spriteforge-theme="glass-forge"] :is(.creator-empty,.asset-empty)::bef
 /* Pricing: tax-inclusive label beside each monthly amount. */
 .plan-price{position:relative;padding-bottom:16px}
 .plan-price::after{content:'VAT included';position:absolute;left:0;bottom:0;font-size:11px;font-weight:600;color:var(--gf-muted);letter-spacing:.01em;white-space:nowrap}
+body[data-spriteforge-theme="glass-forge"] .pricing-grid .plan-card .plan-price{position:relative!important;padding-bottom:18px!important}
+body[data-spriteforge-theme="glass-forge"] .pricing-grid .plan-card .plan-price::after{position:absolute!important;left:0!important;right:auto!important;top:auto!important;bottom:0!important;display:block!important;margin:0!important;transform:none!important}
