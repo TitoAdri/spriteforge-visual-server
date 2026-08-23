@@ -1,6 +1,6 @@
 import { processPixelGrid, quantizePalette } from "/pixel-grid-core.js";
 import { cropForeground, forceGrid, removeChromaBleed, removeChromaKey } from "/character-creator.js?v=17";
-import { clearCreditUpgrade, showCreditUpgrade } from "/credit-alert.js?v=1";
+import { clearCreditUpgrade, showCreditUpgrade } from "/credit-alert.js?v=2";
 
 const GRID_SIZES = [8, 16, 24, 32, 48, 64, 128, 256];
 const PALETTE_SIZES = [8, 16, 24, 32, 48, 64];

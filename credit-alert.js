@@ -20,7 +20,7 @@ export const showCreditUpgrade = (button, error) => {
   alert.className = "credit-upgrade-alert";
   alert.id = "credit-upgrade-alert";
   alert.setAttribute("role", "alert");
-  alert.innerHTML = `<div class="credit-upgrade-alert-copy"><strong>No tienes créditos suficientes</strong><span>${amount ? `Necesitas ${amount} créditos para realizar esta acción.` : "Necesitas más créditos para realizar esta acción."} Sube de plan para seguir creando.</span></div><a href="/pricing" class="credit-upgrade-alert-cta">Subir de plan →</a>`;
+  alert.innerHTML = `<div class="credit-upgrade-alert-copy"><strong>Not enough credits</strong><span>${amount ? `You need ${amount} credits for this action.` : "You need more credits for this action."} Upgrade your plan to keep creating.</span></div><a href="/pricing" class="credit-upgrade-alert-cta">Upgrade plan →</a>`;
   container.querySelector(".credit-upgrade-alert")?.remove();
   button.parentElement?.insertBefore(alert, button);
   button.setAttribute("aria-describedby", "credit-upgrade-alert");
