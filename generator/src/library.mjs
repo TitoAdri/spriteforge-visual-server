@@ -406,6 +406,26 @@ export function createLibrary(auth) {
     return { file, bytes, metadata, width, height, frameCount, delays, fps };
   };
 
+  // Seed the curated directions for every workspace once, without touching
+  // themes a user has created or their existing default selection.
+  const ensureStarterThemes = (userId) => {
+    const starters = [
+      { name: "Twilight Fantasy", direction: "Warm iron, blue moonlight and crisp medium-scale pixels with readable silhouettes for heroic game worlds.", tags: ["rpg", "dark fantasy", "cozy"], settings: { pixelScale: "uniform-medium", view: "left-3-4", palette: { maxColors: 24 } } },
+      { name: "Forest Village", direction: "Friendly woodland pixel art with natural greens, warm timber, soft shapes and inviting storybook details.", tags: ["cozy", "farm sim", "fantasy"], settings: { pixelScale: "uniform-medium", view: "left-3-4", palette: { maxColors: 24 } } },
+      { name: "Arcane Ruins", direction: "High-contrast ancient ruins with cool stone, luminous magic accents and clean silhouettes built for gameplay readability.", tags: ["fantasy", "mystical", "dungeon crawler"], settings: { pixelScale: "uniform-fine", view: "isometric", palette: { maxColors: 32 } } },
+    ];
+    const find = db.prepare("SELECT id FROM themes WHERE user_id = ? AND name = ? AND is_archived = 0");
+    const insert = db.prepare("INSERT INTO themes (id, user_id, project_id, name, version, direction, style_tags_json, settings_json, created_at, updated_at) VALUES (?, ?, NULL, ?, 1, ?, ?, ?, ?, ?)");
+    const time = now(); let twilightId = null;
+    for (const starter of starters) {
+      const existing = find.get(userId, starter.name);
+      if (existing) { if (starter.name === "Twilight Fantasy") twilightId = existing.id; continue; }
+      const themeId = id(); insert.run(themeId, userId, starter.name, starter.direction, JSON.stringify(starter.tags), JSON.stringify(starter.settings), time, time);
+      if (starter.name === "Twilight Fantasy") twilightId = themeId;
+    }
+    if (!db.prepare("SELECT 1 FROM user_theme_preferences WHERE user_id = ?").get(userId) && twilightId) db.prepare("INSERT INTO user_theme_preferences (user_id, default_theme_id, updated_at) VALUES (?, ?, ?)").run(userId, twilightId, time);
+  };
+
   const editorAnimationImport = async (asset) => {
     const source = await animationImportSource(asset);
     return { url: `/api/assets/${asset.id}/editor/import`, mimeType: "image/gif", width: source.width, height: source.height, frameCount: source.frameCount, fps: source.fps };
@@ -413,6 +433,7 @@ export function createLibrary(auth) {
 
   const list = (request) => {
     const user = session(request);
+    ensureStarterThemes(user.id);
     const defaultThemeId = db.prepare("SELECT default_theme_id FROM user_theme_preferences WHERE user_id = ?").get(user.id)?.default_theme_id || null;
     const projects = db.prepare("SELECT * FROM projects WHERE user_id = ? ORDER BY updated_at DESC").all(user.id);
     const themeRefs = db.prepare("SELECT tr.theme_id, a.id, a.name, af.variant FROM theme_references tr JOIN themes t ON t.id = tr.theme_id JOIN assets a ON a.id = tr.asset_id LEFT JOIN asset_files af ON af.asset_id = a.id AND af.variant IN ('game-ready','original') WHERE t.user_id = ? ORDER BY af.variant = 'game-ready' DESC").all(user.id);
