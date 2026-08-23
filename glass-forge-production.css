@@ -1430,6 +1430,20 @@ body[data-spriteforge-theme="glass-forge"] :is(.animation-form textarea,.animati
 body[data-spriteforge-theme="glass-forge"] :is(.creator-generate,.asset-generate,.pack-create,.tileset-create,.animation-create,.animation3-submit,.a4-submit){border:1px solid #ffb26a!important;background:linear-gradient(135deg,#ff6428 0%,#ff8d32 52%,#ffc857 100%)!important;color:#211108!important;box-shadow:0 9px 22px #ff742e4d!important}
 body[data-spriteforge-theme="glass-forge"] :is(.creator-generate,.asset-generate,.pack-create,.tileset-create,.animation-create,.animation3-submit,.a4-submit):hover{background:linear-gradient(135deg,#ff7132 0%,#ffa03e 52%,#ffd66e 100%)!important;border-color:#ffd08a!important;color:#211108!important;box-shadow:0 12px 27px #ff742e80!important}
 body[data-spriteforge-theme="glass-forge"] :is(.creator-generate,.asset-generate,.pack-create,.tileset-create,.animation-create,.animation3-submit,.a4-submit):disabled{opacity:.5!important;box-shadow:none!important}
+body[data-spriteforge-theme="glass-forge"] .creator-controls button.creator-generate,
+body[data-spriteforge-theme="glass-forge"] .asset-controls button.asset-generate,
+body[data-spriteforge-theme="glass-forge"] .pack-form button.pack-create,
+body[data-spriteforge-theme="glass-forge"] .tileset-form button.tileset-create,
+body[data-spriteforge-theme="glass-forge"] .animation-form button.animation-create,
+body[data-spriteforge-theme="glass-forge"] .animation3-form button.animation3-submit,
+body[data-spriteforge-theme="glass-forge"] .a4-panel button.a4-submit{background-image:linear-gradient(135deg,#ff6428 0%,#ff8d32 52%,#ffc857 100%)!important;background-color:#ff8d32!important;border:1px solid #ffb26a!important;color:#211108!important}
+body[data-spriteforge-theme="glass-forge"] .creator-controls button.creator-generate:hover,
+body[data-spriteforge-theme="glass-forge"] .asset-controls button.asset-generate:hover,
+body[data-spriteforge-theme="glass-forge"] .pack-form button.pack-create:hover,
+body[data-spriteforge-theme="glass-forge"] .tileset-form button.tileset-create:hover,
+body[data-spriteforge-theme="glass-forge"] .animation-form button.animation-create:hover,
+body[data-spriteforge-theme="glass-forge"] .animation3-form button.animation3-submit:hover,
+body[data-spriteforge-theme="glass-forge"] .a4-panel button.a4-submit:hover{background-image:linear-gradient(135deg,#ff7132 0%,#ffa03e 52%,#ffd66e 100%)!important;background-color:#ffa03e!important;border-color:#ffd08a!important;color:#211108!important}
 
 /* The secondary character actions share one quiet treatment. */
 body[data-spriteforge-theme="glass-forge"] :is(.creator-result-next-actions #creator-edit,.creator-result-next-actions #creator-view-app){background:#2e2e2e!important;color:#d7d7d7!important;border-color:var(--border)!important;box-shadow:none!important}
