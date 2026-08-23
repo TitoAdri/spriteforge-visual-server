@@ -1,7 +1,7 @@
 import { processPixelGrid, quantizePalette, snapToGrid } from "/pixel-grid-core.js";
 import { characterCreatorMarkup, setupCharacterCreator } from "/character-creator.js?v=29";
 import { assetGeneratorMarkup, setupAssetGenerator } from "/asset-generator.js?v=13";
-import { appStudioMarkup, setupAppStudio } from "/app-studio.js?v=116";
+import { appStudioMarkup, setupAppStudio } from "/app-studio.js?v=117";
 import "/cost-display.js?v=6";
 import "/perspective-assets.js?v=1";
 
@@ -467,7 +467,7 @@ function render() {
   if (path === "/reset-password") { document.querySelector("#app").innerHTML = passwordResetMarkup(); setupPasswordReset(); return; }
   if (path === "/app") {
     const root = document.querySelector("#app"); root.innerHTML = `<main class="app-route-loading" aria-live="polite">Checking your secure workspace…</main>`;
-    fetch("/api/auth/me", { credentials: "same-origin", cache: "no-store" }).then((response) => response.json()).then(async (state) => { if (state?.user) { const query = new URLSearchParams(window.location.search); if (query.get("signup") === "completed") { window.spriteforgeTrackX?.("SignUp", { status: "completed", conversion_id: query.get("signup_id") || undefined }); query.delete("auth"); query.delete("signup"); query.delete("signup_id"); history.replaceState({}, "", `/app${query.toString() ? `?${query}` : ""}`); } if (continuePendingCharacter()) return; if (await continuePendingAnimationUpload()) return; root.innerHTML = appStudioMarkup(); setupAppStudio({ initialAssetId: query.get("asset") || "", initialAnimationAssetId: query.get("animate") || "", initialEditorAssetId: query.get("edit") || "" }); return; } history.replaceState({}, "", "/"); render(); openMarketingAuth("login"); }).catch(() => { history.replaceState({}, "", "/"); render(); openMarketingAuth("login"); });
+    fetch("/api/auth/me", { credentials: "same-origin", cache: "no-store" }).then((response) => response.json()).then(async (state) => { if (state?.user) { const query = new URLSearchParams(window.location.search); if (query.get("signup") === "completed") { window.spriteforgeTrackX?.("SignUp", { status: "completed", conversion_id: query.get("signup_id") || undefined }); window.spriteforgeTrack?.("signup_verified", { metadata: { method: "email" } }); query.delete("auth"); query.delete("signup"); query.delete("signup_id"); history.replaceState({}, "", `/app${query.toString() ? `?${query}` : ""}`); } if (continuePendingCharacter()) return; if (await continuePendingAnimationUpload()) return; root.innerHTML = appStudioMarkup(); setupAppStudio({ initialAssetId: query.get("asset") || "", initialAnimationAssetId: query.get("animate") || "", initialEditorAssetId: query.get("edit") || "" }); return; } history.replaceState({}, "", "/"); render(); openMarketingAuth("login"); }).catch(() => { history.replaceState({}, "", "/"); render(); openMarketingAuth("login"); });
     return;
   }
   document.querySelector("#app").innerHTML = legalRoutes[path]?.() || (path === "/pricing" ? pricing() : path === "/docs" ? docs() : path === "/verify-email" ? `<main class="verification-page"><section class="verification-card"><img src="/assets/spriteforge-logo.png" alt="SpriteForge" /><span class="eyebrow">SPRITEFORGE ACCOUNT</span><span class="verification-orb" aria-hidden="true">✦</span><h1>Email verification</h1><p id="verify-email-status" data-state="loading">Verifying your email securely…</p><a class="verification-cta" href="/app" data-route="/app">Open workspace <b>→</b></a><small>Secure verification · Credits are granted once only.</small></section></main>` : path === "/app" ? appStudioMarkup() : path === "/pixel-grid-detector" ? pixelDetector() : path === "/tileset-base-generator" ? tileset() : path === "/character-creator" ? `${nav()}${characterCreatorMarkup({ theme: characterFunnelTheme, themes: characterFunnelThemes })}` : path === "/asset-generator" ? `${nav()}${assetGeneratorMarkup()}${footerNoDiscord()}` : home());
@@ -505,7 +505,7 @@ function render() {
       if (!auth.user) { openMarketingAuth("register"); return; }
       const csrf = document.cookie.split(";").map((entry) => entry.trim()).find((entry) => entry.startsWith("spriteforge_csrf="))?.slice("spriteforge_csrf=".length) || "";
       button.disabled = true; const original = button.textContent; button.textContent = "Opening secure checkout…";
-      const response = await fetch("/api/billing/checkout", { method: "POST", credentials: "same-origin", headers: { "Content-Type": "application/json", "X-CSRF-Token": csrf }, body: JSON.stringify({ planId }) });
+      const response = await fetch("/api/billing/checkout", { method: "POST", credentials: "same-origin", headers: { "Content-Type": "application/json", "X-CSRF-Token": csrf }, body: JSON.stringify({ planId, attribution: window.spriteforgeGetAttribution?.() || undefined }) });
       const payload = await response.json(); if (!response.ok || !payload.url) throw new Error(payload.error || "Checkout is not ready yet");
       window.location.assign(payload.url);
     } catch (error) { button.disabled = false; button.textContent = `Choose ${planId[0].toUpperCase()}${planId.slice(1)} →`; window.alert(error.message || "Checkout could not be started."); }
@@ -517,7 +517,7 @@ function render() {
     const status = document.querySelector("#verify-email-status"); const token = new URLSearchParams(window.location.search).get("token");
     fetch("/api/auth/verify-email", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ token }) }).then(async (response) => {
       const payload = await response.json(); if (!response.ok) throw new Error(payload.error || "Verification failed");
-      status.textContent = "Verified — your 40 free Forge credits are ready."; status.dataset.state = "success"; window.spriteforgeTrackX?.("SignUp", { status: "completed", conversion_id: payload.user?.id || undefined }); history.replaceState({}, "", "/verify-email");
+      status.textContent = "Verified — your 40 free Forge credits are ready."; status.dataset.state = "success"; window.spriteforgeTrackX?.("SignUp", { status: "completed", conversion_id: payload.user?.id || undefined }); window.spriteforgeTrack?.("signup_verified", { metadata: { method: "email" } }); history.replaceState({}, "", "/verify-email");
     }).catch((error) => { status.textContent = error.message || "This verification link is invalid or has expired."; status.dataset.state = "error"; });
   }
   if (path === "/docs") {

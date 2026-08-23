@@ -29,8 +29,9 @@ const ANALYTICS_EVENTS = new Set([
   "purchase_completed",
   "subscription_renewed",
 ]);
-const ANALYTICS_CLIENT_EVENTS = new Set(["page_view", "pricing_viewed", "plan_selected", "checkout_started"]);
+const ANALYTICS_CLIENT_EVENTS = new Set(["page_view", "pricing_viewed", "plan_selected", "checkout_started", "signup_verified"]);
 const ANALYTICS_PLAN_IDS = new Set(["starter", "creator", "studio"]);
+const ANALYTICS_UTM_KEYS = ["utm_source", "utm_medium", "utm_campaign", "utm_ad", "utm_audience", "utm_term", "utm_content", "utm_id"];
 const scryptOptions = { N: 32768, r: 8, p: 1, maxmem: 128 * 1024 * 1024 };
 
 const now = () => Date.now();
@@ -458,7 +459,21 @@ export function createAuth() {
     const totals = Object.fromEntries(db.prepare("SELECT event_name, COUNT(*) AS count FROM analytics_events WHERE created_at >= ? AND created_at < ? GROUP BY event_name ORDER BY event_name").all(safeStart, safeEnd).map((row) => [row.event_name, Number(row.count)]));
     const byPlan = db.prepare("SELECT event_name, plan_id, COUNT(*) AS count FROM analytics_events WHERE created_at >= ? AND created_at < ? AND plan_id IS NOT NULL GROUP BY event_name, plan_id ORDER BY event_name, plan_id").all(safeStart, safeEnd).map((row) => ({ eventName: row.event_name, planId: row.plan_id, count: Number(row.count) }));
     const daily = db.prepare("SELECT strftime('%Y-%m-%d', created_at / 1000, 'unixepoch') AS day, event_name, COUNT(*) AS count FROM analytics_events WHERE created_at >= ? AND created_at < ? GROUP BY day, event_name ORDER BY day, event_name").all(safeStart, safeEnd).map((row) => ({ day: row.day, eventName: row.event_name, count: Number(row.count) }));
-    return { range: { from: new Date(safeStart).toISOString(), to: new Date(safeEnd).toISOString() }, totals, byPlan, daily };
+    const attributionBuckets = new Map();
+    for (const row of db.prepare("SELECT event_name, metadata FROM analytics_events WHERE created_at >= ? AND created_at < ?").all(safeStart, safeEnd)) {
+      let metadata = {};
+      try { metadata = JSON.parse(row.metadata || "{}"); } catch { /* Ignore malformed legacy metadata. */ }
+      const attribution = metadata?.attribution;
+      if (!attribution || typeof attribution !== "object") continue;
+      const values = Object.fromEntries(ANALYTICS_UTM_KEYS.map((key) => [key, String(attribution[key] || "").slice(0, 160)]).filter(([, value]) => value));
+      if (!Object.keys(values).length) continue;
+      const key = `${row.event_name}:${JSON.stringify(values)}`;
+      const bucket = attributionBuckets.get(key) || { eventName: row.event_name, ...values, count: 0 };
+      bucket.count += 1;
+      attributionBuckets.set(key, bucket);
+    }
+    const byAttribution = [...attributionBuckets.values()].sort((left, right) => right.count - left.count || left.eventName.localeCompare(right.eventName));
+    return { range: { from: new Date(safeStart).toISOString(), to: new Date(safeEnd).toISOString() }, totals, byPlan, daily, byAttribution };
   };
 
   return {
@@ -703,7 +718,8 @@ export function createAuth() {
         }
         db.prepare("INSERT INTO stripe_credit_grants (stripe_invoice_id,user_id,plan_id,credits,created_at) VALUES (?,?,?,?,?)").run(invoiceId, userId, plan.id, plan.credits, time);
         upsertCustomer(userId, customerId, { subscriptionId, planId: plan.id, status: "active", periodEnd });
-        recordAnalyticsEvent({ eventName: hadPriorGrant ? "subscription_renewed" : "purchase_completed", planId: plan.id, userId, valueCents: Math.round(Number(plan.monthlyUsd || 0) * 100), currency: "USD", metadata: { invoiceId } });
+        const attribution = Object.fromEntries(ANALYTICS_UTM_KEYS.map((key) => [key, String(metadata[key] || "").slice(0, 160)]).filter(([, value]) => value));
+        recordAnalyticsEvent({ eventName: hadPriorGrant ? "subscription_renewed" : "purchase_completed", planId: plan.id, userId, valueCents: Math.round(Number(plan.monthlyUsd || 0) * 100), currency: "USD", metadata: { invoiceId, ...(Object.keys(attribution).length ? { attribution } : {}) } });
         return true;
       };
       try {

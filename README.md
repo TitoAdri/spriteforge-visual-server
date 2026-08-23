@@ -285,6 +285,8 @@ GET /api/analytics/summary
 GET /api/analytics/summary?from=2026-08-01&to=2026-09-01
 ```
 
+Si una visita llega con parámetros UTM, `site-analytics.js` conserva la atribución de último toque en el navegador y la adjunta a los eventos de navegación y embudo. Se aceptan `utm_source`, `utm_medium`, `utm_campaign`, `utm_ad`, `utm_audience`, `utm_term`, `utm_content` y `utm_id`. El resumen devuelve esas agrupaciones en `byAttribution`, separadas por evento. La atribución también viaja al Checkout de Stripe para que las compras y renovaciones confirmadas puedan conservar la campaña de origen.
+
 La respuesta incluye totales, desglose por plan y serie diaria. El frontend envía eventos a `POST /api/analytics/events`; ese endpoint está limitado, valida el origen y solo acepta los eventos de navegación permitidos.
 
 GA4 está preparado pero desactivado por defecto. Para activarlo, poner el Measurement ID `G-...` en el `meta[name="ga-measurement-id"]` de `index.html` y conceder `localStorage.spriteforge_analytics_consent = "granted"` desde el banner de consentimiento de la web. El puente usa `page_view`, `select_item` y `begin_checkout`; los eventos de registro, generación y compra siguen teniendo como fuente de verdad el servidor.
