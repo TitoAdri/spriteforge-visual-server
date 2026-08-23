@@ -1423,6 +1423,14 @@ body[data-spriteforge-theme="glass-forge"] :is(.creator-page,.asset-page) :is(.c
 body[data-spriteforge-theme="glass-forge"] :is(.creator-page,.asset-page) :is(.creator-theme-select b,.asset-theme-summary b){font-size:14px!important}
 body[data-spriteforge-theme="glass-forge"] :is(.creator-page,.asset-page) :is(.creator-theme-select small,.asset-theme-summary small,.creator-theme-select em){font-size:12px!important}
 
+/* Give motion prompts enough room for a useful description without scrolling. */
+body[data-spriteforge-theme="glass-forge"] :is(.animation-form textarea,.animation3-form textarea,.a4-panel textarea){min-height:170px!important;height:170px!important;resize:vertical!important}
+
+/* All primary generation actions use the same orange conversion treatment. */
+body[data-spriteforge-theme="glass-forge"] :is(.creator-generate,.asset-generate,.pack-create,.tileset-create,.animation-create,.animation3-submit,.a4-submit){border:1px solid #ffb26a!important;background:linear-gradient(135deg,#ff6428 0%,#ff8d32 52%,#ffc857 100%)!important;color:#211108!important;box-shadow:0 9px 22px #ff742e4d!important}
+body[data-spriteforge-theme="glass-forge"] :is(.creator-generate,.asset-generate,.pack-create,.tileset-create,.animation-create,.animation3-submit,.a4-submit):hover{background:linear-gradient(135deg,#ff7132 0%,#ffa03e 52%,#ffd66e 100%)!important;border-color:#ffd08a!important;color:#211108!important;box-shadow:0 12px 27px #ff742e80!important}
+body[data-spriteforge-theme="glass-forge"] :is(.creator-generate,.asset-generate,.pack-create,.tileset-create,.animation-create,.animation3-submit,.a4-submit):disabled{opacity:.5!important;box-shadow:none!important}
+
 /* The secondary character actions share one quiet treatment. */
 body[data-spriteforge-theme="glass-forge"] :is(.creator-result-next-actions #creator-edit,.creator-result-next-actions #creator-view-app){background:#2e2e2e!important;color:#d7d7d7!important;border-color:var(--border)!important;box-shadow:none!important}
 body[data-spriteforge-theme="glass-forge"] :is(.creator-result-next-actions #creator-edit,.creator-result-next-actions #creator-view-app):hover{background:#3a3a3a!important;color:#f3f3f3!important;border-color:#666!important}
