@@ -1451,6 +1451,15 @@ body[data-spriteforge-theme="glass-forge"] :is(.creator-controls button.creator-
 body[data-spriteforge-theme="glass-forge"] :is(.creator-result-next-actions #creator-edit,.creator-result-next-actions #creator-view-app){background:#2e2e2e!important;color:#d7d7d7!important;border-color:var(--border)!important;box-shadow:none!important}
 body[data-spriteforge-theme="glass-forge"] :is(.creator-result-next-actions #creator-edit,.creator-result-next-actions #creator-view-app):hover{background:#3a3a3a!important;color:#f3f3f3!important;border-color:#666!important}
 
+/* Make insufficient-credit errors visible at the action that triggered them. */
+body[data-spriteforge-theme="glass-forge"] .credit-upgrade-alert{display:flex;align-items:center;justify-content:space-between;gap:16px;width:100%;box-sizing:border-box;margin:0 0 10px;padding:14px 15px;border:1px solid #ff9b52!important;border-radius:10px;background:linear-gradient(135deg,#42261a 0%,#2b201b 100%)!important;box-shadow:0 10px 25px #ff742e2b!important;color:#fff1e7!important}
+body[data-spriteforge-theme="glass-forge"] .credit-upgrade-alert-copy{display:grid;gap:4px;min-width:0}
+body[data-spriteforge-theme="glass-forge"] .credit-upgrade-alert-copy strong{font-size:15px!important;line-height:1.2!important;color:#ffd0ad!important}
+body[data-spriteforge-theme="glass-forge"] .credit-upgrade-alert-copy span{font-size:13px!important;line-height:1.4!important;color:#e6c7b5!important}
+body[data-spriteforge-theme="glass-forge"] .credit-upgrade-alert-cta{display:inline-flex!important;align-items:center!important;justify-content:center!important;flex:0 0 auto!important;min-height:38px!important;padding:9px 13px!important;border:1px solid #ffbd78!important;border-radius:8px!important;background:linear-gradient(135deg,#ff6428 0%,#ff8d32 52%,#ffc857 100%)!important;color:#211108!important;font:850 13px/1.1 Inter,ui-sans-serif,system-ui,sans-serif!important;text-decoration:none!important;white-space:nowrap!important;box-shadow:0 8px 18px #ff742e4d!important}
+body[data-spriteforge-theme="glass-forge"] .credit-upgrade-alert-cta:hover{background:linear-gradient(135deg,#ff7132 0%,#ffa03e 52%,#ffd66e 100%)!important;border-color:#ffd08a!important;box-shadow:0 11px 23px #ff742e80!important}
+@media(max-width:600px){body[data-spriteforge-theme="glass-forge"] .credit-upgrade-alert{align-items:stretch;flex-direction:column;gap:11px}body[data-spriteforge-theme="glass-forge"] .credit-upgrade-alert-cta{width:100%}}
+
 /* Present completed animations like the other generators: the playable output
    is the visual focus, with the actions grouped beside it. */
 body[data-spriteforge-theme="glass-forge"] .a4-results{display:grid!important;grid-template-columns:1fr!important;gap:16px!important;margin-top:18px!important}
