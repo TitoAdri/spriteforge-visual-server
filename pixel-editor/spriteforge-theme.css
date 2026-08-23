@@ -87,3 +87,16 @@ html, body { min-width: 0; overflow: hidden; background: var(--editor-bg) !impor
   background-size: 16px 16px !important;
   background-position: 0 0, 0 8px, 8px -8px, -8px 0 !important;
 }
+/* This deliberately outranks legacy Piskel theme revisions that may still be
+   injected by an already-open editor session. */
+html body .canvas-container.light-canvas-background .canvas-background,
+html body .canvas-container.medium-canvas-background .canvas-background,
+html body .canvas-container.lowcont-medium-canvas-background .canvas-background,
+html body .canvas-container.lowcont-dark-canvas-background .canvas-background {
+  background-color: #202020 !important;
+  background-image:
+    linear-gradient(45deg, #2a2a2a 25%, transparent 25%),
+    linear-gradient(-45deg, #2a2a2a 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, #2a2a2a 75%),
+    linear-gradient(-45deg, transparent 75%, #2a2a2a 75%) !important;
+}

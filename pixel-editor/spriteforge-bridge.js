@@ -271,7 +271,7 @@
     // product theme last so legacy defaults cannot reintroduce grey surfaces.
     var theme = document.createElement("link");
     theme.rel = "stylesheet";
-    theme.href = "spriteforge-theme.css?v=14";
+    theme.href = "spriteforge-theme.css?v=15";
     document.head.appendChild(theme);
     document.title = "SpriteForge · Manual editor";
     // SpriteForge validates editor limits on save. Piskel's legacy heuristic
