@@ -5,6 +5,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { getProvider } from "./providers/index.mjs";
 import { normalizeRecipe } from "./recipes.mjs";
+import { assetV2GridLayout, buildAssetPromptV2 } from "./prompt-builder.mjs";
 import { AuthError, createAuth } from "./auth.mjs";
 import { createLibrary } from "./library.mjs";
 import { startPixelEngineAnimation, pollPixelEngineJob, cancelPixelEngineJob, downloadPixelEngineOutput } from "./providers/pixelengine.mjs";
@@ -13,6 +14,9 @@ import { generatePixelEnginePrompt } from "./pixelengine-prompt-assistant.mjs";
 import { exportAnimation } from "./animation-export.mjs";
 import { CREDIT_COSTS, billingPlanForId, billingPlanForPriceId, creditCostForGeneration, publicBillingCatalog } from "./billing-catalog.mjs";
 import { createBillingPortal, createCheckout, verifyWebhookSignature } from "./stripe.mjs";
+import { generateInternalPixelArt } from "./internal/openai-pixel-art.mjs";
+import { buildPixelArtPromptV3, createPixelGridScaffoldV3, pixelGridLayoutV3 } from "./internal/pixel-art-v3.mjs";
+import { normalizeTurnaround, turnaroundView } from "./turnaround.mjs";
 
 const envFile = path.join(path.dirname(fileURLToPath(import.meta.url)), "..", ".env");
 const envText = fs.existsSync(envFile) ? fs.readFileSync(envFile, "utf8") : "";
@@ -168,6 +172,29 @@ function mayGenerate(user) {
   recent.push(now);
   requestLog.set(key, recent);
   return { ok: true };
+}
+
+async function generateCharacterV3(recipe) {
+  const grid = await createPixelGridScaffoldV3(recipe);
+  const layout = pixelGridLayoutV3(recipe);
+  return generateInternalPixelArt({
+    recipe,
+    prompt: buildPixelArtPromptV3(recipe),
+    images: [grid, ...(recipe.references || [])],
+    tier: "draft",
+    size: `${layout.width}x${layout.height}`,
+  });
+}
+
+async function generateTransparentAssetV2(recipe) {
+  const layout = assetV2GridLayout(recipe);
+  return generateInternalPixelArt({
+    recipe,
+    prompt: buildAssetPromptV2(recipe),
+    images: recipe.references || [],
+    tier: "draft",
+    size: `${layout.width}x${layout.height}`,
+  });
 }
 
 http.createServer(async (request, response) => {
@@ -368,6 +395,7 @@ http.createServer(async (request, response) => {
   let packItem = null;
   let tilesetTile = null;
   let animationFrame = null;
+  let turnaroundSource = null;
   try {
     const body = await readJson(request);
     // The public product uses one tested image stack. Ignore client-supplied
@@ -380,9 +408,41 @@ http.createServer(async (request, response) => {
     const access = mayGenerate(user);
     if (!access.ok) throw new AuthError(access.status, access.code, access.code === "generation_rate_limited" ? `Generation limit reached: ${RATE_LIMIT_MAX_REQUESTS} generations every ${Math.round(RATE_LIMIT_WINDOW_MS / 60_000)} minutes.` : "Generation is temporarily unavailable.");
     const action = pathname === "/api/generate" ? "generate" : "edit";
+    const turnaround = body.turnaround == null ? null : normalizeTurnaround(body.turnaround);
+    if (turnaround) {
+      if (user.role !== "admin") throw new AuthError(403, "admin_required", "Sprite Turnaround is available to administrators only");
+      if (action !== "edit") throw new AuthError(400, "invalid_turnaround_action", "Sprite turnarounds must use image editing");
+      turnaroundSource = await library.turnaroundSource(user, turnaround.sourceAssetId);
+      const sourceRecipe = turnaroundSource.asset.recipe || {};
+      const sourceTarget = sourceRecipe.target && Number.isInteger(sourceRecipe.target.width) && Number.isInteger(sourceRecipe.target.height) ? sourceRecipe.target : recipe.target;
+      recipe = normalizeRecipe({
+        ...sourceRecipe,
+        ...recipe,
+        assetType: ["character", "enemy", "npc"].includes(turnaroundSource.asset.kind) ? turnaroundSource.asset.kind : "character",
+        subject: `${turnaroundSource.asset.name} · ${turnaround.targetDirection} turnaround`,
+        view: turnaroundView(turnaround),
+        pose: sourceRecipe.pose || "preserve the source pose exactly",
+        target: sourceTarget,
+        background: { mode: "transparent", color: "#FF00FF" },
+        composition: { ...(sourceRecipe.composition || {}), fullBody: true, groundShadow: false },
+        references: [],
+        internalVariant: "sprite-turnaround",
+        turnaround,
+      });
+    }
+    const requestedVariant = String(body.pixelArtVariant || "").toLowerCase();
+    const requestedPixelArtV3 = requestedVariant === "v3";
+    const useTransparentAssetV2 = requestedVariant === "asset-transparent-v2";
+    if (requestedPixelArtV3 && (action !== "generate" || recipe.assetType !== "character")) throw new AuthError(400, "invalid_pixel_art_variant", "Pixel art V3 is available for character generation only.");
+    if (useTransparentAssetV2 && (action !== "generate" || !["item", "weapon", "prop", "environment", "building", "ui-icon"].includes(recipe.assetType))) throw new AuthError(400, "invalid_pixel_art_variant", "This asset generation flow is not available for the requested operation.");
+    // V3 is the official character-generation pipeline. Apply it server-side
+    // even to older clients that do not yet send pixelArtVariant.
+    const usePixelArtV3 = action === "generate" && recipe.assetType === "character";
+    if (usePixelArtV3) recipe = normalizeRecipe({ ...recipe, internalVariant: "v3-grid" });
+    else if (useTransparentAssetV2) recipe = normalizeRecipe({ ...recipe, internalVariant: "asset-transparent-v2" });
     const creditCost = creditCostForGeneration({ action, body });
-    debit = auth.debitGeneration(request, idempotencyKey, creditCost, { product: body.tileset ? "tileset_tile" : body.assetPack ? "asset_pack_item" : action === "edit" ? "edit" : String(body.recipe?.assetType || "asset"), provider: providerName });
-    const generationContexts = Number(Boolean(body.assetPack?.id && body.assetPack?.itemId)) + Number(Boolean(body.tileset?.id && body.tileset?.tileId)) + Number(Boolean(body.animation?.id && body.animation?.frameId));
+    debit = auth.debitGeneration(request, idempotencyKey, creditCost, { product: turnaround ? "sprite_turnaround" : body.tileset ? "tileset_tile" : body.assetPack ? "asset_pack_item" : action === "edit" ? "edit" : String(body.recipe?.assetType || "asset"), provider: providerName });
+    const generationContexts = Number(Boolean(body.assetPack?.id && body.assetPack?.itemId)) + Number(Boolean(body.tileset?.id && body.tileset?.tileId)) + Number(Boolean(body.animation?.id && body.animation?.frameId)) + Number(Boolean(turnaround));
     if (generationContexts > 1) throw new AuthError(400, "invalid_generation_context", "Choose one generation context");
     if (body.assetPack?.id && body.assetPack?.itemId) packItem = library.reservePackItem(debit.user, body.assetPack.id, body.assetPack.itemId);
     if (body.tileset?.id && body.tileset?.tileId) tilesetTile = library.reserveTilesetTile(debit.user, body.tileset.id, body.tileset.tileId);
@@ -390,23 +450,23 @@ http.createServer(async (request, response) => {
     const resolvedTheme = await library.resolveTheme(debit.user, body.themeId);
     if (resolvedTheme) {
       const settings = resolvedTheme.settings || {};
-      recipe = normalizeRecipe({ ...recipe, styleTags: [...new Set([...resolvedTheme.styleTags, ...recipe.styleTags])].slice(0, 8), pixelScale: settings.pixelScale || recipe.pixelScale, view: recipe.lockView ? recipe.view : settings.view || recipe.view, palette: { ...recipe.palette, ...(settings.palette || {}) }, subject: resolvedTheme.theme.direction ? `${recipe.subject}. Theme direction: ${resolvedTheme.theme.direction}` : recipe.subject, references: resolvedTheme.references });
+      recipe = normalizeRecipe({ ...recipe, styleTags: [...new Set([...resolvedTheme.styleTags, ...recipe.styleTags])].slice(0, 8), pixelScale: usePixelArtV3 || useTransparentAssetV2 ? recipe.pixelScale : settings.pixelScale || recipe.pixelScale, view: recipe.lockView ? recipe.view : settings.view || recipe.view, palette: { ...recipe.palette, ...(settings.palette || {}) }, subject: resolvedTheme.theme.direction ? `${recipe.subject}. Theme direction: ${resolvedTheme.theme.direction}` : recipe.subject, references: resolvedTheme.references });
     }
     if (body.continuityReferences != null) { const continuity = animationContinuityReferences(body.continuityReferences); if (continuity.length) recipe = normalizeRecipe({ ...recipe, references: [...continuity, ...recipe.references].slice(0, 5) }); }
     generationJob = library.createGenerationJob(debit.user, { provider: providerName, model: null, idempotencyKey });
-    if (action === "edit" && !body.anchor?.base64) throw new Error("anchor.base64 is required for edits");
+    if (action === "edit" && !body.anchor?.base64 && !turnaroundSource) throw new Error("anchor.base64 is required for edits");
     const args = {
       recipe, tier: "draft", change: body.change,
       previousInteractionId: body.previousInteractionId || null,
-      anchor: body.anchor ? { bytes: Buffer.from(body.anchor.base64, "base64"), mimeType: body.anchor.mimeType, filename: body.anchor.filename } : undefined,
+      anchor: turnaroundSource || (body.anchor ? { bytes: Buffer.from(body.anchor.base64, "base64"), mimeType: body.anchor.mimeType, filename: body.anchor.filename } : undefined),
     };
-    const result = await provider[action](args);
-    const savedAsset = await library.saveGenerationResult(debit.user, generationJob, { provider: result.provider, model: result.model, recipe, bytes: result.image, mimeType: result.mimeType, themeId: body.themeId || null, collectionId: packItem?.pack.collection_id || tilesetTile?.tileset.collection_id || animationFrame?.clip.collection_id || null, parentAssetId: animationFrame?.clip.source_asset_id || null });
+    const result = usePixelArtV3 ? await generateCharacterV3(recipe) : useTransparentAssetV2 ? await generateTransparentAssetV2(recipe) : await provider[action](args);
+    const savedAsset = await library.saveGenerationResult(debit.user, generationJob, { provider: result.provider, model: result.model, recipe, bytes: result.image, mimeType: result.mimeType, themeId: body.themeId || null, collectionId: packItem?.pack.collection_id || tilesetTile?.tileset.collection_id || animationFrame?.clip.collection_id || null, parentAssetId: turnaroundSource?.asset.id || animationFrame?.clip.source_asset_id || null });
     if (packItem) library.completePackItem(debit.user, packItem.id, savedAsset.id);
     if (tilesetTile) library.completeTilesetTile(debit.user, tilesetTile.id, savedAsset.id);
     if (animationFrame) library.completeAnimationFrame(debit.user, animationFrame.id, savedAsset.id);
     try {
-      auth.recordAnalyticsEvent({ eventName: "generation_completed", userId: debit.user.id, product: body.tileset ? "tileset" : body.assetPack ? "asset_pack" : action === "edit" ? "edit" : String(body.recipe?.assetType || "asset"), metadata: { provider: result.provider, model: result.model } });
+      auth.recordAnalyticsEvent({ eventName: "generation_completed", userId: debit.user.id, product: turnaround ? "sprite_turnaround" : body.tileset ? "tileset" : body.assetPack ? "asset_pack" : action === "edit" ? "edit" : String(body.recipe?.assetType || "asset"), metadata: { provider: result.provider, model: result.model } });
     } catch (analyticsError) { console.warn({ event: "analytics_record_failed", code: analyticsError.code || "analytics_error" }); }
     generationCompleted = true;
     send(response, 200, { provider: result.provider, model: result.model, mimeType: result.mimeType, requestId: result.requestId, interactionId: result.interactionId, creditsCharged: debit.exempt ? 0 : creditCost, asset: savedAsset, imageBase64: result.image.toString("base64") });

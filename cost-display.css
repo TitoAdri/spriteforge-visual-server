@@ -1,11 +1,11 @@
-.creator-cost,.asset-cost,.tileset-cost,.pack-cost{display:flex;align-items:center;gap:8px;margin:0;padding:10px 12px;border:1px solid #5a4639;border-radius:9px;background:linear-gradient(135deg,#29211c,#1c1b1b);color:#c7b7ad;font-size:11px}
-.creator-cost span,.asset-cost span,.tileset-cost span,.pack-cost span{color:#a99a91;text-transform:uppercase;letter-spacing:.09em;font-size:9px;font-weight:800}
-.creator-cost b,.asset-cost b,.tileset-cost b,.pack-cost b{color:#f2ad7b;font-size:12px}
-.asset-cost small,.tileset-cost small,.pack-cost small{margin-left:auto;color:#9d918b;font-size:10px}
+.creator-cost,.asset-cost,.tileset-cost,.pack-cost,.turnaround-cost{display:flex;align-items:center;gap:8px;margin:0;padding:10px 12px;border:1px solid #5a4639;border-radius:9px;background:linear-gradient(135deg,#29211c,#1c1b1b);color:#c7b7ad;font-size:11px}
+.creator-cost span,.asset-cost span,.tileset-cost span,.pack-cost span,.turnaround-cost span{color:#a99a91;text-transform:uppercase;letter-spacing:.09em;font-size:9px;font-weight:800}
+.creator-cost b,.asset-cost b,.tileset-cost b,.pack-cost b,.turnaround-cost b{color:#f2ad7b;font-size:12px}
+.asset-cost small,.tileset-cost small,.pack-cost small,.turnaround-cost small{margin-left:auto;color:#9d918b;font-size:10px}
 #pack-count,#tileset-count{color:#f2ad7b;font-weight:700;letter-spacing:.01em}
 .credit-inline-badge{color:#f2ad7b;font-size:10px;font-weight:800}
 .animation-cost b,.a4-cost b{color:#f2ad7b!important;font-weight:850}
 .a4-cost{display:flex;align-items:center;gap:8px;margin:0;padding:10px 12px;border:1px solid #5a4639;border-radius:9px;background:linear-gradient(135deg,#29211c,#1c1b1b);color:#c7b7ad;font-size:11px}
 .a4-cost span{color:#a99a91;text-transform:uppercase;letter-spacing:.09em;font-size:9px;font-weight:800}
 .a4-cost small{margin-left:auto;color:#9d918b;font-size:10px}
-@media(max-width:620px){.creator-cost,.asset-cost,.tileset-cost,.pack-cost{flex-wrap:wrap}.asset-cost small,.tileset-cost small,.pack-cost small{width:100%;margin-left:0}}
+@media(max-width:620px){.creator-cost,.asset-cost,.tileset-cost,.pack-cost,.turnaround-cost{flex-wrap:wrap}.asset-cost small,.tileset-cost small,.pack-cost small,.turnaround-cost small{width:100%;margin-left:0}}

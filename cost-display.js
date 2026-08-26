@@ -1,6 +1,6 @@
 /* Keeps the public credit schedule visible and consistent across dynamically
    mounted generators. The server remains authoritative for the actual debit. */
-const COST = Object.freeze({ character: 3, asset: 3, packItem: 6, tile: 3, animation: 25 });
+const COST = Object.freeze({ character: 3, asset: 3, packItem: 6, tile: 3, animation: 25, turnaround: 6 });
 
 const text = (node, value) => { if (node && node.textContent !== value) node.textContent = value; };
 const ensureCreditBadge = (node, label) => {
@@ -30,6 +30,7 @@ function refreshCosts(root = document) {
   addEstimate(root.querySelector("#asset-form"), ".asset-generate", "asset-cost", "<span>Estimated use</span><b>3 Forge credits</b><small>Charged only when generation starts.</small>");
   addEstimate(root.querySelector(".tileset-form"), ".tileset-create", "tileset-cost", "<span>Estimated use</span><b>3 Forge credits per tile</b><small>Charged as each tile starts.</small>");
   addEstimate(root.querySelector(".pack-form"), ".pack-create", "pack-cost", "<span>Estimated use</span><b>6 Forge credits per asset</b><small>Charged as each asset starts.</small>");
+  addEstimate(root.querySelector("#turnaround-form"), ".turnaround-generate", "turnaround-cost", `<span>Estimated use</span><b>${COST.turnaround} Forge credits</b><small>Charged when reconstruction starts.</small>`);
 
   const packCount = root.querySelector("#pack-count");
   if (packCount) {

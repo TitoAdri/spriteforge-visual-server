@@ -728,6 +728,16 @@ export function createLibrary(auth) {
   const fetchFile = async (request, assetId, variant) => {
     const user = session(request); if (!FILE_VARIANTS.has(variant)) throw new AuthError(404, "not_found", "File not found"); const asset = requireOwned("assets", assetId, user.id); const file = db.prepare("SELECT * FROM asset_files WHERE asset_id = ? AND variant = ?").get(asset.id, variant); if (!file) throw new AuthError(404, "not_found", "File not found"); const bytes = await fs.readFile(path.join(root, file.storage_key)); return { bytes, mimeType: file.mime_type };
   };
+  const turnaroundSource = async (user, assetId) => {
+    const asset = requireOwned("assets", assetId, user.id);
+    if (["animation", "pack", "tileset", "spritesheet"].includes(asset.kind)) throw new AuthError(400, "invalid_turnaround_source", "Choose one static character or creature sprite");
+    const file = db.prepare("SELECT * FROM asset_files WHERE asset_id=? AND variant IN ('game-ready','original') ORDER BY variant='game-ready' DESC LIMIT 1").get(asset.id);
+    if (!file) throw new AuthError(404, "turnaround_source_missing", "The source asset has no usable image");
+    let bytes;
+    try { bytes = await fs.readFile(path.join(root, file.storage_key)); } catch { throw new AuthError(404, "turnaround_source_missing", "The source image could not be read"); }
+    if (!imageType(bytes)) throw new AuthError(415, "invalid_turnaround_source", "The source image is not a supported image");
+    return { asset: assetPublic(asset), bytes, mimeType: file.mime_type, filename: `sprite-turnaround-${asset.id}.png` };
+  };
   const revisionPublic = (revision) => ({ id: revision.id, number: revision.revision_number, width: revision.width, height: revision.height, frameCount: revision.frame_count, documentByteSize: revision.document_byte_size, gameReadyByteSize: revision.game_ready_byte_size, animationByteSize: revision.animation_byte_size || null, createdAt: revision.created_at });
   const editorInfo = async (request, assetId) => {
     const user = editorSession(request); const asset = requireOwned("assets", assetId, user.id);
@@ -861,5 +871,5 @@ export function createLibrary(auth) {
   };
   const failGenerationJob = (user, job, errorCode) => db.prepare("UPDATE generation_jobs SET status = 'failed', error_code = ?, updated_at = ? WHERE id = ? AND user_id = ?").run(String(errorCode || "generation_failed").slice(0, 100), now(), job.id, user.id);
 
-  return { list, createProject, assignAssetProject, createTheme, updateTheme, setDefaultTheme, addThemeReference, resolveTheme, createCollection, createAssetPack, reservePackItem, retryPackItem, completePackItem, failPackItem, createTileset, reserveTilesetTile, retryTilesetTile, completeTilesetTile, failTilesetTile, createAnimationClip, deleteAnimationClip, reserveAnimationFrame, retryAnimationFrame, regenerateAnimationFrame, updateAnimationGeometry, regenerateAnimationClip, completeAnimationFrame, failAnimationFrame, startAnimationSheet, failAnimationSheet, attachAnimationFrame, setAnimationKeyframe, clearAnimationKeyframe, insertAnimationFrame, deleteAnimationFrame, retakeAnimationRange, createPreset, createAsset, uploadFile, fetchFile, editorInfo, fetchEditorAnimationImport, fetchEditorRevision, saveEditorRevision, copyEditorAsset, uploadEditorAsset, saveAnimationOutput, createPixelEngineJob, getPixelEngineJob, updatePixelEngineJob, linkAnimationOutput, createGenerationJob, saveGenerationResult, failGenerationJob };
+  return { list, createProject, assignAssetProject, createTheme, updateTheme, setDefaultTheme, addThemeReference, resolveTheme, createCollection, createAssetPack, reservePackItem, retryPackItem, completePackItem, failPackItem, createTileset, reserveTilesetTile, retryTilesetTile, completeTilesetTile, failTilesetTile, createAnimationClip, deleteAnimationClip, reserveAnimationFrame, retryAnimationFrame, regenerateAnimationFrame, updateAnimationGeometry, regenerateAnimationClip, completeAnimationFrame, failAnimationFrame, startAnimationSheet, failAnimationSheet, attachAnimationFrame, setAnimationKeyframe, clearAnimationKeyframe, insertAnimationFrame, deleteAnimationFrame, retakeAnimationRange, createPreset, createAsset, uploadFile, fetchFile, turnaroundSource, editorInfo, fetchEditorAnimationImport, fetchEditorRevision, saveEditorRevision, copyEditorAsset, uploadEditorAsset, saveAnimationOutput, createPixelEngineJob, getPixelEngineJob, updatePixelEngineJob, linkAnimationOutput, createGenerationJob, saveGenerationResult, failGenerationJob };
 }

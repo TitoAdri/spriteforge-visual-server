@@ -11,14 +11,14 @@ function headers() {
   return { Authorization: `Bearer ${assertKey("OPENAI_API_KEY")}` };
 }
 
-async function compactReference(reference, fallbackName) {
+async function compactReference(reference, fallbackName, { upscale = false } = {}) {
   // Reference images influence OpenAI's billed image-input tokens according
   // to their dimensions. The model only needs visual direction here, not a
   // full-resolution source file. Nearest-neighbour preserves hard pixel edges
   // while keeping the image below a compact 512px working side.
   const bytes = await sharp(reference.bytes, { animated: false, limitInputPixels: 16_000_000 })
     .rotate()
-    .resize({ width: REFERENCE_MAX_SIDE, height: REFERENCE_MAX_SIDE, fit: "inside", withoutEnlargement: true, kernel: sharp.kernel.nearest })
+    .resize({ width: REFERENCE_MAX_SIDE, height: REFERENCE_MAX_SIDE, fit: "inside", withoutEnlargement: !upscale, kernel: sharp.kernel.nearest })
     .png({ compressionLevel: 9 })
     .toBuffer();
   return { blob: new Blob([bytes], { type: "image/png" }), filename: fallbackName };
@@ -55,7 +55,11 @@ export async function editOpenAI({ recipe, change, anchor, tier = "draft" }) {
   form.set("size", plan.size);
   form.set("quality", plan.quality);
   form.set("output_format", plan.outputFormat);
-  const anchorImage = await compactReference(anchor, anchor.filename || "anchor.png");
+  if (recipe.internalVariant === "sprite-turnaround") {
+    form.set("background", "transparent");
+    form.set("input_fidelity", "high");
+  }
+  const anchorImage = await compactReference(anchor, anchor.filename || "anchor.png", { upscale: recipe.internalVariant === "sprite-turnaround" });
   form.append("image[]", anchorImage.blob, anchorImage.filename);
   for (const [index, reference] of (recipe.references || []).entries()) {
     const image = await compactReference(reference, `reference-${index + 1}.png`);
