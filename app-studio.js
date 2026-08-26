@@ -1,9 +1,10 @@
-import { characterCreatorMarkup, setupCharacterCreator } from "/character-creator.js?v=29";
-import { assetGeneratorMarkup, setupAssetGenerator } from "/asset-generator.js?v=13";
+import { characterCreatorMarkup, setupCharacterCreator } from "/character-creator.js?v=35";
+import { assetGeneratorMarkup, setupAssetGenerator } from "/asset-generator.js?v=15";
 import { assetPackMarkup, setupAssetPack } from "/asset-pack.js?v=7";
 import { tilesetMarkup, setupTileset } from "/tileset.js?v=7";
 import { animation4Markup, setupAnimation4 } from "/animation4.js?v=14";
 import { manualEditorMarkup, setupManualEditor } from "/manual-editor.js?v=23";
+import { spriteTurnaroundMarkup, setupSpriteTurnaround } from "/sprite-turnaround.js?v=1";
 import { processPixelGrid, quantizePalette } from "/pixel-grid-core.js?v=2";
 
 const asset = (path) => `/assets/${path}`;
@@ -66,8 +67,11 @@ const studioSidebar = () => `<aside class="studio-sidebar">
   <p class="studio-sidebar-label">CREATE</p>
   <nav class="studio-primary studio-tools">
     <button data-studio-tool="Character">${icon("♙")}<span>Character</span></button>
+    <button data-studio-tool="Character 2" data-admin-feature="character-v3" hidden>${icon("♙")}<span>Character 2</span></button>
     <button data-studio-tool="Asset Pack" data-beta-feature="asset-pack">${icon("▦")}<span>Asset pack <small>(beta)</small></span></button>
     <button data-studio-tool="Asset Generator">${icon("✧")}<span>Asset generator</span></button>
+    <button data-studio-tool="Asset Generator 2" data-admin-feature="asset-generator-v2" hidden>${icon("✧")}<span>Asset generator 2</span></button>
+    <button data-studio-tool="Sprite Turnaround" data-admin-feature="sprite-turnaround" hidden>${icon("↻")}<span>Sprite turnaround</span></button>
     <button data-studio-tool="Tileset">${icon("▤")}<span>Tileset</span></button>
     <button data-studio-tool="Animation">${icon("▷")}<span>Animation</span></button>
     <button data-studio-tool="Manual Editor">${icon("✎")}<span>Pixel Editor</span></button>
@@ -92,12 +96,13 @@ const homeView = () => `<section class="studio-view studio-home-view">
 </section>`;
 
 const activeTheme = () => workspaceThemes.find((theme) => theme.id === activeThemeId) || null;
-const characterView = () => { const theme = activeTheme(); return `<section class="studio-view studio-character-view"><header class="studio-topbar"><div><span class="studio-kicker">CREATE · CHARACTER${theme ? ` · THEME: ${theme.name.toUpperCase()}` : ""}</span><h1>Character creator</h1><p>Create a character, normalize it to a game-ready sprite, then save it in your private library.</p></div><button data-studio-view="assets" class="studio-upload" type="button">View library →</button></header>${characterCreatorMarkup({ embedded: true, theme, themes: workspaceThemes })}</section>`; };
-const assetGeneratorView = () => { const theme = activeTheme(); return `<section class="studio-view studio-asset-generator-view"><header class="studio-topbar"><div><span class="studio-kicker">CREATE · ASSET GENERATOR${theme ? ` · THEME: ${theme.name.toUpperCase()}` : ""}</span><h1>Asset generator</h1><p>Generate standalone game objects, buildings, scenery and UI icons with task-specific production rules.</p></div><button data-studio-view="assets" class="studio-upload" type="button">View library →</button></header>${assetGeneratorMarkup({ embedded: true, theme })}</section>`; };
+const characterView = (variant = "v1") => { const theme = activeTheme(); const experimental = variant === "v3"; return `<section class="studio-view studio-character-view"><header class="studio-topbar"><div><span class="studio-kicker">CREATE · ${experimental ? "CHARACTER 2 · V3 GRID" : "CHARACTER"}${theme ? ` · THEME: ${theme.name.toUpperCase()}` : ""}</span><h1>${experimental ? "Character 2" : "Character creator"}</h1><p>Create a character, normalize it to a game-ready sprite, then save it in your private library.</p></div><button data-studio-view="assets" class="studio-upload" type="button">View library →</button></header>${characterCreatorMarkup({ embedded: true, theme, themes: workspaceThemes })}</section>`; };
+const assetGeneratorView = (variant = "v2-transparent", experimental = false) => { const theme = activeTheme(); return `<section class="studio-view studio-asset-generator-view"><header class="studio-topbar"><div><span class="studio-kicker">CREATE · ${experimental ? "ASSET GENERATOR 2 · NATIVE TRANSPARENCY" : "ASSET GENERATOR"}${theme ? ` · THEME: ${theme.name.toUpperCase()}` : ""}</span><h1>${experimental ? "Asset generator 2" : "Asset generator"}</h1><p>Generate standalone game objects, buildings, scenery and UI icons with task-specific production rules.</p></div><button data-studio-view="assets" class="studio-upload" type="button">View library →</button></header>${assetGeneratorMarkup({ embedded: true, theme, variant })}</section>`; };
 const assetPackView = () => assetPackMarkup({ theme: activeTheme(), packs: assetPacks });
 const tilesetView = () => tilesetMarkup({ theme: activeTheme(), tilesets });
 const animationView = () => animation4Markup({ theme: activeTheme(), assets, animations, jobs: pixelEngineJobs });
 const manualEditorView = (assetId = "") => manualEditorMarkup({ assets, assetId });
+const spriteTurnaroundView = () => `<section class="studio-view studio-turnaround-view"><header class="studio-topbar"><div><span class="studio-kicker">CREATE · ADMIN LAB · GPT IMAGE 2</span><h1>Sprite turnaround</h1><p>Rotate one approved character into another platformer or isometric facing while preserving identity, pose and pixel language.</p></div><button data-studio-view="assets" class="studio-upload" type="button">View library →</button></header>${spriteTurnaroundMarkup({ assets })}</section>`;
 
 const liveThemesView = () => { const theme = activeTheme() || workspaceThemes[0]; return `<section class="studio-view"><header class="studio-topbar"><div><span class="studio-kicker">PERSISTENT ART DIRECTION</span><h1>Themes</h1><p>Reusable visual direction. Tags are available to every user; image references are premium.</p></div><button class="studio-upload" data-theme-create type="button">+ New theme</button></header>${workspaceThemes.length ? `<div class="studio-theme-workbench"><section class="studio-theme-list">${workspaceThemes.map((item) => `<button data-theme-select="${item.id}" class="${item.id === theme?.id ? "active" : ""}"><i></i><span><b>${item.name}${item.isDefault ? `<mark>Default</mark>` : ""}</b><small>${item.references.length}/5 premium references · ${item.styleTags.join(", ") || "no tags"}</small></span><em>v${item.version}</em></button>`).join("")}</section><section class="studio-theme-detail"><div class="studio-theme-detail-title"><div><span class="studio-kicker">${theme.isDefault ? "DEFAULT CREATOR THEME" : "THEME"} · VERSION ${theme.version}</span><h2>${theme.name}</h2><p>${theme.direction || "No direction yet."}</p></div><button data-theme-edit="${theme.id}" type="button">Edit theme</button></div><div class="studio-theme-rules"><article><span>STYLE TAGS</span><p>${theme.styleTags.map((tag) => `<b>${tag}</b>`).join("") || "No tags"}</p></article><article><span>PIXEL RULES</span><p>${theme.settings.pixelScale || "Medium pixels"} · ${theme.settings.view || "left 3/4"}</p></article><article><span>STYLE REFERENCES</span><p>${theme.references.length}/5 · Premium</p></article><article><span>USE IN CREATOR</span><button class="studio-default-theme ${theme.isDefault ? "active" : ""}" data-theme-default="${theme.id}" type="button" aria-pressed="${theme.isDefault}">${theme.isDefault ? "✓ Default theme" : "Set as default"}</button><small>${theme.isDefault ? "Applied automatically when Character Creator opens." : "Make this the automatic starting theme."}</small></article></div><div class="studio-theme-reference"><span class="studio-kicker">STYLE REFERENCES · PREMIUM</span><div>${theme.references.length ? theme.references.map((ref) => `<span class="checker"><img src="${ref.url || asset("showcase/avatars/outlined/tinyslime24.png")}" alt="" /></span>`).join("") : `<p><b>No reference images</b><small>Add up to five approved assets for stronger visual consistency.</small></p>`}<button data-theme-reference="${theme.id}" type="button">Add reference</button></div></div></section></div>` : `<section class="studio-theme-empty"><div class="studio-theme-empty-orb">✦</div><span class="studio-kicker">YOUR FIRST ART DIRECTION</span><h2>Give every asset a shared visual language.</h2><p>Start with a few style tags and a short description. You can add premium visual references later for stronger consistency.</p><button data-theme-create type="button">Create your first theme →</button><small>Examples: Cozy farming RPG · Dark dungeon crawler · Handheld retro</small></section>`}</section>`; };
 
@@ -132,7 +137,7 @@ export function setupAppStudio({ initialAssetId = "", initialAnimationAssetId = 
   let animationSourceId = initialAnimationAssetId;
   let editorAssetId = initialEditorAssetId;
   const viewFromUrl = new URLSearchParams(window.location.search).get("view") || "";
-  const validViews = new Set(["home", "assets", "projects", "themes", "presets", "settings", "support", "character", "asset-generator", "asset-pack", "tileset", "animation", "manual-editor"]);
+  const validViews = new Set(["home", "assets", "projects", "themes", "presets", "settings", "support", "character", "character-v3", "asset-generator", "asset-generator-v2", "asset-pack", "tileset", "animation", "manual-editor", "sprite-turnaround"]);
   let activeManualEditor = null;
   let selectedReferences = [];
   let authState = { user: null, available: false, httpsRequired: true };
@@ -169,19 +174,24 @@ export function setupAppStudio({ initialAssetId = "", initialAnimationAssetId = 
     if (view === "manual-editor" && next !== "manual-editor" && activeManualEditor?.hasUnsavedChanges() && !window.confirm("Discard unsaved editor changes?")) return;
     activeManualEditor?.destroy(); activeManualEditor = null;
     if ((next === "presets" || next === "asset-pack") && !authState.user?.creditExempt) { notify("This beta workspace is available to administrators only."); next = "home"; }
+    if (next === "character-v3" && authState.user?.role !== "admin") { notify("Character 2 is available to administrators only."); next = "home"; }
+    if (next === "asset-generator-v2" && authState.user?.role !== "admin") { notify("Asset Generator 2 is available to administrators only."); next = "home"; }
+    if (next === "sprite-turnaround" && authState.user?.role !== "admin") { notify("Sprite Turnaround is available to administrators only."); next = "home"; }
     view = next;
     if (syncUrl) syncViewUrl(view);
-    content.innerHTML = next === "assets" ? assetsView() : next === "projects" ? projectsView() : next === "themes" ? liveThemesView() : next === "presets" ? presetsView() : next === "settings" ? settingsView(authState.user) : next === "support" ? supportView() : next === "character" ? characterView() : next === "asset-generator" ? assetGeneratorView() : next === "asset-pack" ? assetPackView() : next === "tileset" ? tilesetView() : next === "animation" ? animationView() : next === "manual-editor" ? manualEditorView(editorAssetId) : homeView();
+    content.innerHTML = next === "assets" ? assetsView() : next === "projects" ? projectsView() : next === "themes" ? liveThemesView() : next === "presets" ? presetsView() : next === "settings" ? settingsView(authState.user) : next === "support" ? supportView() : next === "character" ? characterView() : next === "character-v3" ? characterView("v3") : next === "asset-generator" ? assetGeneratorView() : next === "asset-generator-v2" ? assetGeneratorView("v2-transparent", true) : next === "asset-pack" ? assetPackView() : next === "tileset" ? tilesetView() : next === "animation" ? animationView() : next === "manual-editor" ? manualEditorView(editorAssetId) : next === "sprite-turnaround" ? spriteTurnaroundView() : homeView();
     root.querySelectorAll("[data-studio-view]").forEach((button) => button.classList.toggle("is-active", button.dataset.studioView === view));
-    const activeTool = ({ character: "Character", "asset-generator": "Asset Generator", "asset-pack": "Asset Pack", tileset: "Tileset", animation: "Animation", "manual-editor": "Manual Editor" })[view] || "";
+    const activeTool = ({ character: "Character", "character-v3": "Character 2", "asset-generator": "Asset Generator", "asset-generator-v2": "Asset Generator 2", "asset-pack": "Asset Pack", tileset: "Tileset", animation: "Animation", "manual-editor": "Manual Editor", "sprite-turnaround": "Sprite Turnaround" })[view] || "";
     root.querySelectorAll("[data-studio-tool]").forEach((button) => button.classList.toggle("is-active", button.dataset.studioTool === activeTool));
     wireView();
-    if (next === "character") setupCharacterCreator({ theme: activeTheme(), themes: workspaceThemes, onThemePicker: () => openThemePicker("character"), onSaved: async () => { await loadLibrary(); notify("Character saved to your private library."); } });
-    if (next === "asset-generator") setupAssetGenerator({ theme: activeTheme(), onSaved: async () => { await loadLibrary(); notify("Asset saved to your private library."); } });
+    if (next === "character" || next === "character-v3") setupCharacterCreator({ variant: "v3", theme: activeTheme(), themes: workspaceThemes, onThemePicker: () => openThemePicker("character"), onSaved: async () => { await loadLibrary(); notify("Character saved to your private library."); } });
+    if (next === "asset-generator") setupAssetGenerator({ variant: "v2-transparent", theme: activeTheme(), onSaved: async () => { await loadLibrary(); notify("Asset saved to your private library."); } });
+    if (next === "asset-generator-v2") setupAssetGenerator({ variant: "v2-transparent", theme: activeTheme(), onSaved: async () => { await loadLibrary(); notify("Asset saved to your private library."); } });
     if (next === "asset-pack") setupAssetPack({ theme: activeTheme(), packs: assetPacks, onChanged: loadLibrary, onNotice: notify });
     if (next === "tileset") setupTileset({ theme: activeTheme(), tilesets, onChanged: loadLibrary, onNotice: notify });
     if (next === "animation") setupAnimation4({ theme: activeTheme(), assets, jobs: pixelEngineJobs, initialAssetId: animationSourceId, onChanged: loadLibrary, onNotice: notify });
     if (next === "manual-editor") activeManualEditor = setupManualEditor({ assets, initialAssetId: editorAssetId, onNavigate: (id) => { editorAssetId = id; setView("manual-editor"); }, onChanged: loadLibrary, onNotice: notify });
+    if (next === "sprite-turnaround") setupSpriteTurnaround({ assets, onSaved: async () => { await loadLibrary(); notify("Turnaround saved as a derived asset in your private library."); }, onNotice: notify });
     wireEditorThemeControl(next);
     if (promptText) window.setTimeout(() => prefillEditorPrompt(next, promptText), 0);
   };
@@ -194,6 +204,11 @@ export function setupAppStudio({ initialAssetId = "", initialAnimationAssetId = 
     if (upgradeLink) upgradeLink.hidden = !freeUser;
     root.querySelectorAll("[data-beta-feature]").forEach((element) => {
       const enabled = Boolean(authState.user?.creditExempt);
+      element.hidden = !enabled;
+      element.setAttribute("aria-hidden", enabled ? "false" : "true");
+    });
+    root.querySelectorAll("[data-admin-feature]").forEach((element) => {
+      const enabled = authState.user?.role === "admin";
       element.hidden = !enabled;
       element.setAttribute("aria-hidden", enabled ? "false" : "true");
     });
@@ -241,21 +256,28 @@ export function setupAppStudio({ initialAssetId = "", initialAnimationAssetId = 
   };
   const openAuth = (mode = "login") => {
     const register = mode === "register";
-    modalRoot.innerHTML = `<div class="studio-overlay"><section class="studio-dialog studio-auth-dialog" role="dialog" aria-modal="true" aria-label="${register ? "Create account" : "Sign in"}"><header><div><span class="studio-kicker">SPRITEFORGE ACCOUNT</span><h2>${register ? "Create your workspace" : "Welcome back"}</h2><p>${register ? "Verify your email to activate your 40 free credits." : "Sign in to manage projects and generate sprites."}</p></div><button data-modal-close type="button">×</button></header>${authState.httpsRequired ? `<div class="studio-auth-https"><b>Secure access is pending HTTPS</b><p>Passwords and paid credits are never enabled over an unencrypted HTTP connection. Attach a domain with TLS in Coolify to activate account access.</p></div>` : `<form class="studio-auth-form"><label>Email<input type="email" name="email" autocomplete="email" required maxlength="254" /></label><label>Password<input type="password" name="password" autocomplete="${register ? "new-password" : "current-password"}" required minlength="12" maxlength="128" /></label>${register ? `<label>Confirm password<input type="password" name="confirmPassword" autocomplete="new-password" required minlength="12" maxlength="128" /></label><input class="studio-honeypot" type="text" name="website" tabindex="-1" autocomplete="off" aria-hidden="true" /><p class="studio-auth-note">Your 40 free credits unlock after email verification.</p>` : ""}<p class="studio-auth-error" role="alert" hidden></p><button type="submit">${register ? "Create secure account" : "Sign in"} →</button><div class="studio-auth-or"><span>OR</span></div><a class="studio-google-auth" href="/api/auth/google" aria-label="Continue with Google"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="#4285F4" d="M21.8 12.23c0-.71-.06-1.4-.19-2.05H12v3.88h5.49a4.7 4.7 0 0 1-2.03 3.08v2.52h3.27c1.91-1.76 3.07-4.35 3.07-7.43Z"/><path fill="#34A853" d="M12 22c2.75 0 5.06-.91 6.73-2.34l-3.27-2.52c-.91.61-2.07.97-3.46.97-2.66 0-4.91-1.8-5.72-4.22H2.9v2.6A10.16 10.16 0 0 0 12 22Z"/><path fill="#FBBC05" d="M6.28 13.89A6.1 6.1 0 0 1 5.96 12c0-.66.11-1.3.32-1.89v-2.6H2.9A10.02 10.02 0 0 0 1.84 12c0 1.61.39 3.14 1.06 4.49l3.38-2.6C7.09 7.69 9.34 5.89 12 5.89c1.5 0 2.85.52 3.91 1.53l2.94-2.94C17.05 2.8 14.75 2 12 2a10.16 10.16 0 0 0-9.1 5.51l3.38 2.6C7.09 7.69 9.34 5.89 12 5.89Z"/></svg><span>Continue with Google</span></a><button class="studio-auth-switch" data-auth-switch="${register ? "login" : "register"}" type="button">${register ? "Already have an account? Sign in" : "New to SpriteForge? Create an account"}</button></form>`}</section></div>`;
+    modalRoot.innerHTML = `<div class="studio-overlay"><section class="studio-dialog studio-auth-dialog" role="dialog" aria-modal="true" aria-label="${register ? "Create account" : "Sign in"}"><header><div><span class="studio-kicker">SPRITEFORGE ACCOUNT</span><h2>${register ? "Create your workspace" : "Welcome back"}</h2><p>${register ? "Verify your email to activate your 40 free credits." : "Sign in to manage projects and generate sprites."}</p></div><button data-modal-close type="button">×</button></header>${authState.httpsRequired ? `<div class="studio-auth-https"><b>Secure access is pending HTTPS</b><p>Passwords and paid credits are never enabled over an unencrypted HTTP connection. Attach a domain with TLS in Coolify to activate account access.</p></div>` : `<form class="studio-auth-form">${register ? `<a class="studio-google-auth" href="/api/auth/google" aria-label="Continue with Google"><span>Continue with Google</span></a><div class="studio-auth-or"><span>OR</span></div>` : ""}<label>Email<input type="email" name="email" autocomplete="email" required maxlength="254" /></label><label>Password<div class="studio-auth-password-wrap"><input type="password" name="password" autocomplete="${register ? "new-password" : "current-password"}" required minlength="12" maxlength="128" /><button type="button" class="studio-password-toggle" aria-label="Show password"><span aria-hidden="true">👁</span> <span>Show password</span></button></div></label>${register ? `<input class="studio-honeypot" type="text" name="website" tabindex="-1" autocomplete="off" aria-hidden="true" /><p class="studio-auth-note">Your 40 free credits unlock after email verification.</p>` : ""}<p class="studio-auth-error" role="alert" hidden></p><button type="submit">${register ? "Create free account" : "Sign in"} →</button>${!register ? `<div class="studio-auth-or"><span>OR</span></div><a class="studio-google-auth" href="/api/auth/google" aria-label="Continue with Google"><span>Continue with Google</span></a>` : ""}<button class="studio-auth-switch" data-auth-switch="${register ? "login" : "register"}" type="button">${register ? "Already have an account? Sign in" : "New to SpriteForge? Create an account"}</button></form>`}</section></div>`;
     wireModal();
     const authSubmit = modalRoot.querySelector(".studio-auth-form button[type=submit]");
-    if (register && authSubmit) authSubmit.textContent = "Create account →";
+    if (register && authSubmit) authSubmit.textContent = "Create free account →";
     const form = modalRoot.querySelector(".studio-auth-form");
     if (!register && form) {
       const forgot = document.createElement("button"); forgot.type = "button"; forgot.className = "studio-auth-forgot"; forgot.textContent = "Forgot your password?";
       forgot.addEventListener("click", () => { closeModal(); window.location.assign("/reset-password"); });
       form.insertBefore(forgot, form.querySelector(".studio-auth-error"));
     }
+    const password = form?.querySelector('input[name="password"]');
+    const passwordToggle = form?.querySelector(".studio-password-toggle");
+    passwordToggle?.addEventListener("click", () => {
+      const visible = password.type === "text";
+      password.type = visible ? "password" : "text";
+      passwordToggle.setAttribute("aria-label", visible ? "Show password" : "Hide password");
+      passwordToggle.querySelector("span:last-child").textContent = visible ? "Show password" : "Hide password";
+    });
     form?.addEventListener("submit", async (event) => {
       event.preventDefault();
       const values = Object.fromEntries(new FormData(form));
       const error = form.querySelector(".studio-auth-error");
-      if (register && values.password !== values.confirmPassword) { error.hidden = false; error.textContent = "Passwords do not match."; return; }
       const submit = form.querySelector("button[type=submit]"); submit.disabled = true; submit.textContent = "Please wait…";
       try {
         const response = await fetch(`/api/auth/${register ? "register" : "login"}`, { method: "POST", credentials: "same-origin", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email: values.email, password: values.password }) });
@@ -268,7 +290,7 @@ export function setupAppStudio({ initialAssetId = "", initialAnimationAssetId = 
           setView(generatorView(intent.target), intent.promptText);
         }
         if (register && payload.user) await startPendingCheckout();
-      } catch (errorValue) { error.hidden = false; error.textContent = errorValue.message || "Authentication failed."; submit.disabled = false; submit.textContent = register ? "Create account →" : "Sign in →"; }
+      } catch (errorValue) { error.hidden = false; error.textContent = errorValue.message || "Authentication failed."; submit.disabled = false; submit.textContent = register ? "Create free account →" : "Sign in →"; }
     });
   };
   const openReferences = () => {
@@ -517,7 +539,7 @@ export function setupAppStudio({ initialAssetId = "", initialAnimationAssetId = 
   const wireEditorThemeControl = (editorView) => {
     if (editorView === "character") return;
     const theme = activeTheme();
-    if (editorView === "asset-generator") {
+    if (editorView === "asset-generator" || editorView === "asset-generator-v2") {
       const summary = root.querySelector(".asset-theme-summary");
       if (!summary) return;
       summary.classList.add("studio-editor-theme-control");
@@ -669,7 +691,7 @@ export function setupAppStudio({ initialAssetId = "", initialAnimationAssetId = 
       });
     }
   };
-  const openTool = (tool, promptText = "") => { if (tool === "Character" || tool === "Asset Generator" || tool === "Asset Pack" || tool === "Tileset" || tool === "Animation" || tool === "Manual Editor") { if (!authState.user) openAuth("login"); else setView(tool === "Character" ? "character" : tool === "Asset Generator" ? "asset-generator" : tool === "Asset Pack" ? "asset-pack" : tool === "Tileset" ? "tileset" : tool === "Animation" ? "animation" : "manual-editor", promptText); } else notify(`${tool} is designed and ready for its functional phase.`); };
+  const openTool = (tool, promptText = "") => { if (tool === "Character" || tool === "Character 2" || tool === "Asset Generator" || tool === "Asset Generator 2" || tool === "Asset Pack" || tool === "Tileset" || tool === "Animation" || tool === "Manual Editor" || tool === "Sprite Turnaround") { if (!authState.user) openAuth("login"); else setView(tool === "Character" ? "character" : tool === "Character 2" ? "character-v3" : tool === "Asset Generator" ? "asset-generator" : tool === "Asset Generator 2" ? "asset-generator-v2" : tool === "Asset Pack" ? "asset-pack" : tool === "Tileset" ? "tileset" : tool === "Animation" ? "animation" : tool === "Sprite Turnaround" ? "sprite-turnaround" : "manual-editor", promptText); } else notify(`${tool} is designed and ready for its functional phase.`); };
   root.querySelectorAll("[data-studio-view]").forEach((button) => button.addEventListener("click", () => setView(button.dataset.studioView)));
   root.querySelectorAll("[data-studio-tool]").forEach((button) => button.addEventListener("click", () => openTool(button.dataset.studioTool)));
   root.addEventListener("click", (event) => { const trigger = event.target.closest("[data-auth-action]"); if (!trigger) return; if (trigger.dataset.authAction === "login") openAuth("login"); else notify(authState.user?.creditExempt ? "Administrator account · unlimited credits" : `${authState.user?.credits || 0} credits available${authState.user?.plan ? ` · ${authState.user.plan} plan active` : ""}`); });

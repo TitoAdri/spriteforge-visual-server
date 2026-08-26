@@ -25,11 +25,15 @@ const ANALYTICS_EVENTS = new Set([
   "plan_selected",
   "checkout_started",
   "signup_verified",
+  "character_prompt_submitted",
+  "character_funnel_converted",
+  "animation_upload_submitted",
+  "animation_funnel_converted",
   "generation_completed",
   "purchase_completed",
   "subscription_renewed",
 ]);
-const ANALYTICS_CLIENT_EVENTS = new Set(["page_view", "pricing_viewed", "plan_selected", "checkout_started", "signup_verified"]);
+const ANALYTICS_CLIENT_EVENTS = new Set(["page_view", "pricing_viewed", "plan_selected", "checkout_started", "signup_verified", "character_prompt_submitted", "character_funnel_converted", "animation_upload_submitted", "animation_funnel_converted"]);
 const ANALYTICS_PLAN_IDS = new Set(["starter", "creator", "studio"]);
 const ANALYTICS_UTM_KEYS = ["utm_source", "utm_medium", "utm_campaign", "utm_ad", "utm_audience", "utm_term", "utm_content", "utm_id"];
 const scryptOptions = { N: 32768, r: 8, p: 1, maxmem: 128 * 1024 * 1024 };
@@ -473,7 +477,23 @@ export function createAuth() {
       attributionBuckets.set(key, bucket);
     }
     const byAttribution = [...attributionBuckets.values()].sort((left, right) => right.count - left.count || left.eventName.localeCompare(right.eventName));
-    return { range: { from: new Date(safeStart).toISOString(), to: new Date(safeEnd).toISOString() }, totals, byPlan, daily, byAttribution };
+    const funnelRows = db.prepare("SELECT event_name, client_id, metadata FROM analytics_events WHERE created_at >= ? AND created_at < ? AND event_name IN ('character_prompt_submitted','character_funnel_converted','animation_upload_submitted','animation_funnel_converted')").all(safeStart, safeEnd);
+    const funnelEvents = funnelRows.map((row) => {
+      let metadata = {};
+      try { metadata = JSON.parse(row.metadata || "{}"); } catch { /* Ignore malformed legacy metadata. */ }
+      return { ...row, funnelId: String(metadata?.funnelId || "") };
+    });
+    const funnelMetrics = (startEvent, conversionEvent) => {
+      const promptEvents = funnelEvents.filter((row) => row.event_name === startEvent && row.funnelId);
+      const conversionEvents = funnelEvents.filter((row) => row.event_name === conversionEvent && row.funnelId);
+      const promptPeople = new Set(promptEvents.map((row) => row.client_id).filter(Boolean));
+      const convertedPeople = new Set(conversionEvents.map((row) => row.client_id).filter(Boolean));
+      const convertedFunnels = new Set(conversionEvents.map((row) => row.funnelId));
+      return { promptSubmissions: promptEvents.length, promptPeople: promptPeople.size, accountsCreated: convertedFunnels.size, convertedPeople: convertedPeople.size, conversionRate: promptPeople.size ? Number((convertedPeople.size / promptPeople.size * 100).toFixed(2)) : 0 };
+    };
+    const characterFunnel = funnelMetrics("character_prompt_submitted", "character_funnel_converted");
+    const animationFunnel = funnelMetrics("animation_upload_submitted", "animation_funnel_converted");
+    return { range: { from: new Date(safeStart).toISOString(), to: new Date(safeEnd).toISOString() }, totals, byPlan, daily, byAttribution, characterFunnel, animationFunnel };
   };
 
   return {

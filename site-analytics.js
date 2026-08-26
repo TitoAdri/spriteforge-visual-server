@@ -5,7 +5,7 @@
   const clientKey = "spriteforge_analytics_session";
   const attributionKey = "spriteforge_analytics_attribution";
   const utmKeys = ["utm_source", "utm_medium", "utm_campaign", "utm_ad", "utm_audience", "utm_term", "utm_content", "utm_id"];
-  const allowedEvents = new Set(["page_view", "pricing_viewed", "plan_selected", "checkout_started", "signup_verified"]);
+  const allowedEvents = new Set(["page_view", "pricing_viewed", "plan_selected", "checkout_started", "signup_verified", "character_prompt_submitted", "character_funnel_converted", "animation_upload_submitted", "animation_funnel_converted"]);
   const gaEventNames = { plan_selected: "select_item", checkout_started: "begin_checkout" };
   let clientId = "";
   try {
@@ -87,6 +87,40 @@
   window.spriteforgeGetAttribution = () => attribution ? { ...attribution } : null;
   window.spriteforgeTrackPageView = (path) => track("page_view", { path });
   window.spriteforgeTrackPricing = (path) => track("pricing_viewed", { path });
+  const funnelDefinitions = {
+    character: { idKey: "spriteforge_character_funnel_id", convertedKey: "spriteforge_character_funnel_converted_id", contextKey: "spriteforge_funnel_context", startEvent: "character_prompt_submitted", conversionEvent: "character_funnel_converted", prefix: "cf_" },
+    animation: { idKey: "spriteforge_animation_funnel_id", convertedKey: "spriteforge_animation_funnel_converted_id", contextKey: "spriteforge_funnel_context", startEvent: "animation_upload_submitted", conversionEvent: "animation_funnel_converted", prefix: "af_" },
+  };
+  const randomFunnelId = (prefix) => `${prefix}${crypto.randomUUID?.().replaceAll("-", "") || Math.random().toString(36).slice(2)}${Date.now().toString(36)}`.slice(0, 100);
+  const trackFunnelStart = (kind, path) => {
+    const funnel = funnelDefinitions[kind]; const funnelId = randomFunnelId(funnel.prefix);
+    try { localStorage.setItem(funnel.idKey, funnelId); localStorage.removeItem(funnel.convertedKey); localStorage.setItem(funnel.contextKey, kind); } catch { /* Storage may be unavailable. */ }
+    track(funnel.startEvent, { path, metadata: { funnelId } });
+    return funnelId;
+  };
+  const trackFunnelConversion = (kind, method = "email") => {
+    const funnel = funnelDefinitions[kind]; let funnelId = "";
+    try { funnelId = String(localStorage.getItem(funnel.idKey) || ""); } catch { /* Storage may be unavailable. */ }
+    if (!/^[A-Za-z0-9_-]{8,100}$/.test(funnelId)) return;
+    try { if (localStorage.getItem(funnel.convertedKey) === funnelId) return; localStorage.setItem(funnel.convertedKey, funnelId); } catch { /* Storage may be unavailable. */ }
+    track(funnel.conversionEvent, { path: "/app", metadata: { funnelId, method: String(method).slice(0, 20) } });
+  };
+  const clearFunnel = (kind) => {
+    const funnel = funnelDefinitions[kind];
+    try { localStorage.removeItem(funnel.idKey); localStorage.removeItem(funnel.convertedKey); if (localStorage.getItem(funnel.contextKey) === kind) localStorage.removeItem(funnel.contextKey); } catch { /* Storage may be unavailable. */ }
+  };
+  window.spriteforgeTrackCharacterPrompt = (path = "/") => trackFunnelStart("character", path);
+  window.spriteforgeTrackAnimationUpload = (path = "/") => trackFunnelStart("animation", path);
+  window.spriteforgeTrackCharacterFunnelConversion = (method = "email") => trackFunnelConversion("character", method);
+  window.spriteforgeTrackAnimationFunnelConversion = (method = "email") => trackFunnelConversion("animation", method);
+  window.spriteforgeTrackPendingFunnelConversion = (method = "email") => {
+    let context = "";
+    try { context = String(localStorage.getItem("spriteforge_funnel_context") || ""); } catch { /* Storage may be unavailable. */ }
+    if (context === "character") trackFunnelConversion("character", method);
+    if (context === "animation") trackFunnelConversion("animation", method);
+  };
+  window.spriteforgeClearCharacterFunnel = () => clearFunnel("character");
+  window.spriteforgeClearAnimationFunnel = () => clearFunnel("animation");
   window.spriteforgeSetAnalyticsConsent = (granted) => {
     try { localStorage.setItem("spriteforge_analytics_consent", granted ? "granted" : "denied"); } catch { /* Storage may be unavailable. */ }
     if (granted) initGa();

@@ -275,6 +275,10 @@ El sitio registra métricas first-party en la tabla SQLite `analytics_events`. N
 - `plan_selected`: clic en elegir Starter, Creator o Studio.
 - `checkout_started`: Stripe creó correctamente una sesión de checkout.
 - `signup_verified`: email verificado correctamente.
+- `character_prompt_submitted`: alguien escribió un prompt en el CTA del hero y pulsó `Create`.
+- `character_funnel_converted`: ese intento terminó en una cuenta creada/verificada; el resumen deduplica el intento mediante un identificador anónimo local.
+- `animation_upload_submitted`: alguien subió una imagen desde el CTA de animación.
+- `animation_funnel_converted`: ese upload terminó en una cuenta creada/verificada.
 - `generation_completed`: generación de imagen o animación guardada.
 - `purchase_completed` / `subscription_renewed`: grant de factura confirmado por webhook de Stripe.
 
@@ -287,7 +291,7 @@ GET /api/analytics/summary?from=2026-08-01&to=2026-09-01
 
 Si una visita llega con parámetros UTM, `site-analytics.js` conserva la atribución de último toque en el navegador y la adjunta a los eventos de navegación y embudo. Se aceptan `utm_source`, `utm_medium`, `utm_campaign`, `utm_ad`, `utm_audience`, `utm_term`, `utm_content` y `utm_id`. El resumen devuelve esas agrupaciones en `byAttribution`, separadas por evento. La atribución también viaja al Checkout de Stripe para que las compras y renovaciones confirmadas puedan conservar la campaña de origen.
 
-La respuesta incluye totales, desglose por plan y serie diaria. El frontend envía eventos a `POST /api/analytics/events`; ese endpoint está limitado, valida el origen y solo acepta los eventos de navegación permitidos.
+La respuesta incluye totales, desglose por plan, serie diaria, `characterFunnel` y `animationFunnel`. Ambos bloques tienen `promptSubmissions`, `promptPeople`, `accountsCreated`, `convertedPeople` y `conversionRate`. El frontend envía eventos a `POST /api/analytics/events`; ese endpoint está limitado, valida el origen y solo acepta los eventos de navegación y funnel permitidos.
 
 GA4 está preparado pero desactivado por defecto. Para activarlo, poner el Measurement ID `G-...` en el `meta[name="ga-measurement-id"]` de `index.html` y conceder `localStorage.spriteforge_analytics_consent = "granted"` desde el banner de consentimiento de la web. El puente usa `page_view`, `select_item` y `begin_checkout`; los eventos de registro, generación y compra siguen teniendo como fuente de verdad el servidor.
 

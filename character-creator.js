@@ -165,7 +165,7 @@ function cookie(name) {
   return document.cookie.split(";").map((entry) => entry.trim()).find((entry) => entry.startsWith(`${name}=`))?.slice(name.length + 1) || "";
 }
 
-export function setupCharacterCreator({ onSaved, theme = null, themes = [], onThemePicker } = {}) {
+export function setupCharacterCreator({ onSaved, theme = null, themes = [], onThemePicker, variant = "v3" } = {}) {
   const root = document.querySelector("#character-creator");
   if (!root) return;
   const form = root.querySelector("#creator-form");
@@ -196,9 +196,11 @@ export function setupCharacterCreator({ onSaved, theme = null, themes = [], onTh
     if (!state.source) return;
     const rawSnapped = state.gridSize == null ? (state.auto?.snapped || forceGrid(state.source, 48)) : forceGrid(state.source, state.gridSize);
     const snapped = state.gridSize == null ? rawSnapped : applyTransparencyMask(rawSnapped, state.autoMask);
-    const cleaned = removeChromaBleed(removeChromaKey(snapped));
+    // V3 requests native transparency from GPT Image 2. Preserve its alpha
+    // and only apply the grid/palette normalization locally.
+    const cleaned = variant === "v3" ? snapped : removeChromaBleed(removeChromaKey(snapped));
     finalImage = state.colors == null ? cleaned : quantizePalette(cleaned, state.colors, 16);
-    finalImage = removeChromaBleed(removeChromaKey(finalImage));
+    if (variant !== "v3") finalImage = removeChromaBleed(removeChromaKey(finalImage));
     put(output, finalImage);
     const automatic = state.gridSize == null;
     const confidence = state.auto?.detection ? ` · ${(state.auto.detection.confidence * 100).toFixed(0)}% confidence` : " · fallback 48×48";
@@ -231,7 +233,7 @@ export function setupCharacterCreator({ onSaved, theme = null, themes = [], onTh
   form.addEventListener("submit", async (event) => {
     event.preventDefault();
     clearCreditUpgrade(generateButton);
-    const body = { provider: "openai", tier: "draft", themeId: theme?.id || null, recipe: { assetType: "character", subject: root.querySelector("#creator-subject").value.trim(), view: state.view, pose: root.querySelector("#creator-pose").value, target: { width: 64, height: 96 }, palette: { maxColors: 32, mood: "premium game pixel art" }, pixelScale: root.querySelector("#creator-pixel-scale").value, styleTags: [...state.styleTags], lockedTraits: [] } };
+    const body = { provider: "openai", tier: "draft", themeId: theme?.id || null, ...(variant === "v3" ? { pixelArtVariant: "v3" } : {}), recipe: { assetType: "character", subject: root.querySelector("#creator-subject").value.trim(), view: state.view, pose: root.querySelector("#creator-pose").value, target: variant === "v3" ? { width: 32, height: 48 } : { width: 64, height: 96 }, palette: { maxColors: 32, mood: "premium game pixel art" }, pixelScale: root.querySelector("#creator-pixel-scale").value, styleTags: [...state.styleTags], lockedTraits: [] } };
     setState("loading");
     try {
       const csrfToken = cookie("spriteforge_csrf");
@@ -241,10 +243,13 @@ export function setupCharacterCreator({ onSaved, theme = null, themes = [], onTh
       const payload = await response.json();
       if (!response.ok) throw new Error(payload.code === "generator_disabled" ? "Generation is temporarily disabled by the site owner." : payload.code === "generation_rate_limited" ? payload.error || "Generation limit reached: 10 generations every 5 minutes." : payload.error || "The generation request failed.");
       const original = await decodeImage(payload.imageBase64, payload.mimeType);
-      state.source = cropForeground(original);
+      // V3 receives a full-canvas checker scaffold. Cropping before detection
+      // would remove the registration canvas and make the detector infer a
+      // different grid from the remaining subject.
+      state.source = variant === "v3" ? original : cropForeground(original);
       state.auto = processPixelGrid(state.source, { minimumConfidence: 0.05 });
       if (!state.auto.ok) state.auto = null;
-      state.autoMask = state.auto ? removeChromaBleed(removeChromaKey(state.auto.snapped)) : null;
+      state.autoMask = state.auto ? (variant === "v3" ? state.auto.snapped : removeChromaBleed(removeChromaKey(state.auto.snapped))) : null;
       state.gridSize = null;
       state.colors = null;
       put(root.querySelector("#creator-original"), original);

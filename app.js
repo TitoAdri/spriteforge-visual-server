@@ -1,8 +1,8 @@
 import { processPixelGrid, quantizePalette, snapToGrid } from "/pixel-grid-core.js";
-import { characterCreatorMarkup, setupCharacterCreator } from "/character-creator.js?v=29";
-import { assetGeneratorMarkup, setupAssetGenerator } from "/asset-generator.js?v=13";
-import { appStudioMarkup, setupAppStudio } from "/app-studio.js?v=117";
-import "/cost-display.js?v=6";
+import { characterCreatorMarkup, setupCharacterCreator } from "/character-creator.js?v=35";
+import { assetGeneratorMarkup, setupAssetGenerator } from "/asset-generator.js?v=14";
+import { appStudioMarkup, setupAppStudio } from "/app-studio.js?v=123";
+import "/cost-display.js?v=7";
 import "/perspective-assets.js?v=1";
 
 const asset = (path) => `/assets/${path}`;
@@ -177,10 +177,10 @@ const home = () => `
       <div class="hero-glow"></div><div class="hero-grid"></div>
       <div class="marketing-hero-inner">
         <div class="eyebrow">AI GAME ART · BUILT FOR INDIE TEAMS</div>
-        <h1>Forge a game world<br /><em>players remember.</em></h1>
+        <h1>Create &amp; animate<br /><em>pixel art for your game in seconds.</em></h1>
         <p class="hero-copy">Create characters, props, tilesets and animations in one consistent pixel-art workspace. Describe what you need, then ship a clean, game-ready asset.</p>
         <form class="hero-character-cta" id="hero-character-form"><label for="hero-character-brief">What character should we forge first?</label><div><span class="hero-prompt-icon" aria-hidden="true">✦</span><input id="hero-character-brief" name="brief" maxlength="700" placeholder="A moonlit ranger with a teal cloak and brass goggles" autocomplete="off" required /><button type="submit">Create</button></div></form><div class="hero-animation-cta"><span>Or animate your own</span><label for="hero-animation-file">↑ Upload an image</label><input id="hero-animation-file" type="file" accept="image/png,image/jpeg,image/webp" hidden /><p id="hero-animation-error" role="alert" hidden></p></div><div class="hero-actions"><a class="hero-text-cta" href="/pricing" data-route="/pricing">View plans <b>→</b></a></div>
-        <div class="trust-row"><span>✦ 40 free credits</span><span>▦ Grid-aware output</span><span>◈ Private library</span><span>✓ No card required</span></div>
+        <div class="trust-row"><span>✓ Free animation</span><span>✓ Pixel-art generations</span><span>✓ No card required</span></div>
       </div>
       <div class="hero-art" aria-label="SpriteForge pixel art examples"><div class="hero-art-card hero-art-main"><img src="${asset("examples/pixel-art-characters/gilded-knight/idle.webp")}" alt="Generated pixel art knight"/><span>Character · ready to ship</span></div><div class="hero-art-card hero-art-small"><img src="${asset("showcase/pack/tree.png")}" alt="Pixel art tree asset"/><span>Asset · 24 colors</span></div><div class="hero-art-card hero-art-tiny"><img src="${asset("examples/tiny-pixel-art/tiny_owl_idle.webp")}" alt="Pixel art owl"/><span>Theme · consistent</span></div></div>
     </section>
@@ -310,12 +310,19 @@ function setupGridTool() {
   modal.addEventListener("keydown", (event) => { if (event.key === "Escape") closeModal(); });
 }
 
-function openMarketingAuth(mode = "login") {
+function openMarketingAuth(mode = "login", context = "generic") {
   document.querySelector(".marketing-auth-overlay")?.remove();
   const register = mode === "register";
+  const characterFunnel = register && context === "character" && Boolean(localStorage.getItem("spriteforge_pending_character_brief"));
+  if (register && context === "character") window.spriteforgeClearAnimationFunnel?.();
+  if (register && context === "animation") { localStorage.removeItem("spriteforge_pending_character_brief"); window.spriteforgeClearCharacterFunnel?.(); }
+  if (register && context === "generic") { localStorage.removeItem("spriteforge_pending_character_brief"); window.spriteforgeClearCharacterFunnel?.(); window.spriteforgeClearAnimationFunnel?.(); }
+  const authTitle = characterFunnel ? "Your character is ready to forge." : (register ? "Create account" : "Welcome back");
+  const authCopy = characterFunnel ? "Your prompt is saved. Create a free account with 40 free credits." : (register ? "Sign up to unlock your 40 free Forge credits." : "Sign in to access your private SpriteForge workspace.");
+  const googleMarkup = `<a class="marketing-google-auth" href="/api/auth/google" aria-label="Continue with Google"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="#4285F4" d="M21.8 12.23c0-.71-.06-1.4-.19-2.05H12v3.88h5.49a4.7 4.7 0 0 1-2.03 3.08v2.52h3.27c1.91-1.76 3.07-4.35 3.07-7.43Z"/><path fill="#34A853" d="M12 22c2.75 0 5.06-.91 6.73-2.34l-3.27-2.52c-.91.61-2.07.97-3.46.97-2.66 0-4.91-1.8-5.72-4.22H2.9v2.6A10.16 10.16 0 0 0 12 22Z"/><path fill="#FBBC05" d="M6.28 13.89A6.1 6.1 0 0 1 5.96 12c0-.66.11-1.3.32-1.89v-2.6H2.9A10.02 10.02 0 0 0 1.84 12c0 1.61.39 3.14 1.06 4.49l3.38-2.6C7.09 7.69 9.34 5.89 12 5.89c1.5 0 2.85.52 3.91 1.53l2.94-2.94C17.05 2.8 14.75 2 12 2a10.16 10.16 0 0 0-9.1 5.51l3.38 2.6C7.09 7.69 9.34 5.89 12 5.89Z"/></svg><span>Continue with Google</span></a>`;
   const overlay = document.createElement("div");
   overlay.className = "marketing-auth-overlay";
-  overlay.innerHTML = `<section class="marketing-auth-dialog" role="dialog" aria-modal="true" aria-label="${register ? "Create account" : "Sign in"}"><button class="marketing-auth-close" type="button" aria-label="Close">×</button><span class="marketing-auth-kicker">SPRITEFORGE ACCOUNT</span><h2>${register ? "Create your workspace" : "Welcome back"}</h2><p>${register ? "Verify your email to activate your 40 free Forge credits." : "Sign in to access your private SpriteForge workspace."}</p><form><label>Email<input type="email" name="email" autocomplete="email" maxlength="254" required /></label><label>Password<input type="password" name="password" autocomplete="${register ? "new-password" : "current-password"}" minlength="12" maxlength="128" required /></label>${register ? `<label>Confirm password<input type="password" name="confirmPassword" autocomplete="new-password" minlength="12" maxlength="128" required /></label><input class="marketing-auth-honeypot" type="text" name="website" tabindex="-1" autocomplete="off" aria-hidden="true" />` : ""}<p class="marketing-auth-error" role="alert" hidden></p><button class="marketing-auth-submit" type="submit">${register ? "Create secure account" : "Sign in"} →</button><div class="marketing-auth-or"><span>OR</span></div><a class="marketing-google-auth" href="/api/auth/google" aria-label="Continue with Google"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="#4285F4" d="M21.8 12.23c0-.71-.06-1.4-.19-2.05H12v3.88h5.49a4.7 4.7 0 0 1-2.03 3.08v2.52h3.27c1.91-1.76 3.07-4.35 3.07-7.43Z"/><path fill="#34A853" d="M12 22c2.75 0 5.06-.91 6.73-2.34l-3.27-2.52c-.91.61-2.07.97-3.46.97-2.66 0-4.91-1.8-5.72-4.22H2.9v2.6A10.16 10.16 0 0 0 12 22Z"/><path fill="#FBBC05" d="M6.28 13.89A6.1 6.1 0 0 1 5.96 12c0-.66.11-1.3.32-1.89v-2.6H2.9A10.02 10.02 0 0 0 1.84 12c0 1.61.39 3.14 1.06 4.49l3.38-2.6Z"/><path fill="#EA4335" d="M12 5.89c1.5 0 2.85.52 3.91 1.53l2.94-2.94C17.05 2.8 14.75 2 12 2a10.16 10.16 0 0 0-9.1 5.51l3.38 2.6C7.09 7.69 9.34 5.89 12 5.89Z"/></svg><span>Continue with Google</span></a><button class="marketing-auth-switch" type="button">${register ? "Already have an account? Sign in" : "New to SpriteForge? Create an account"}</button></form></section>`;
+  overlay.innerHTML = `<section class="marketing-auth-dialog${characterFunnel ? " marketing-auth-character-funnel" : ""}" role="dialog" aria-modal="true" aria-label="${register ? "Create account" : "Sign in"}"><button class="marketing-auth-close" type="button" aria-label="Close">×</button><span class="marketing-auth-kicker">SPRITEFORGE ACCOUNT</span><h2>${authTitle}</h2><p>${authCopy}</p><form>${register ? `${googleMarkup}<div class="marketing-auth-or"><span>OR</span></div>` : ""}<label>Email<input type="email" name="email" autocomplete="email" maxlength="254" required /></label><label>Password<div class="marketing-auth-password-wrap"><input type="password" name="password" autocomplete="${register ? "new-password" : "current-password"}" minlength="12" maxlength="128" required /><button type="button" class="marketing-password-toggle" aria-label="Show password"><span aria-hidden="true">👁</span> <span>Show password</span></button></div></label>${register ? `<input class="marketing-auth-honeypot" type="text" name="website" tabindex="-1" autocomplete="off" aria-hidden="true" />` : ""}<p class="marketing-auth-error" role="alert" hidden></p><button class="marketing-auth-submit" type="submit">${register ? "Create free account" : "Sign in"} →</button>${!register ? `<div class="marketing-auth-or"><span>OR</span></div>${googleMarkup}` : ""}<button class="marketing-auth-switch" type="button">${register ? "Already have an account? Sign in" : "New to SpriteForge? Create an account"}</button></form></section>`;
   const close = () => overlay.remove();
   if (!register) {
     const forgot = document.createElement("button"); forgot.type = "button"; forgot.className = "marketing-auth-forgot"; forgot.textContent = "Forgot your password?";
@@ -324,20 +331,28 @@ function openMarketingAuth(mode = "login") {
   }
   overlay.querySelector(".marketing-auth-close").addEventListener("click", close);
   overlay.addEventListener("click", (event) => { if (event.target === overlay) close(); });
-  overlay.querySelector(".marketing-auth-switch").addEventListener("click", () => { close(); openMarketingAuth(register ? "login" : "register"); });
+  overlay.querySelector(".marketing-auth-switch").addEventListener("click", () => { close(); openMarketingAuth(register ? "login" : "register", context); });
+  const password = overlay.querySelector('input[name="password"]');
+  const passwordToggle = overlay.querySelector(".marketing-password-toggle");
+  passwordToggle?.addEventListener("click", () => {
+    const visible = password.type === "text";
+    password.type = visible ? "password" : "text";
+    passwordToggle.setAttribute("aria-label", visible ? "Show password" : "Hide password");
+    passwordToggle.querySelector("span:last-child").textContent = visible ? "Show password" : "Hide password";
+  });
   overlay.querySelector("form").addEventListener("submit", async (event) => {
     event.preventDefault(); const form = event.currentTarget; const values = Object.fromEntries(new FormData(form)); const error = form.querySelector(".marketing-auth-error"); const submit = form.querySelector("button[type=submit]");
-    if (register && values.password !== values.confirmPassword) { error.hidden = false; error.textContent = "Passwords do not match."; return; }
     submit.disabled = true; submit.textContent = "Please wait…";
     try {
       const response = await fetch(`/api/auth/${register ? "register" : "login"}`, { method: "POST", credentials: "same-origin", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email: values.email, password: values.password, website: values.website || "" }) }); const payload = await response.json();
       if (!response.ok) throw new Error(payload.error || "Authentication failed.");
       if (payload.user) { window.location.assign("/app"); return; }
+      if (register) window.spriteforgeTrackPendingFunnelConversion?.("email");
       form.innerHTML = `<div class="marketing-auth-confirmed"><span class="marketing-auth-confirmed-icon" aria-hidden="true">✉</span><div><span class="marketing-auth-kicker">NEXT STEP</span><b>Check your inbox</b><p>We sent a secure verification link to <strong>${String(values.email).replace(/[&<>\"]/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[char]))}</strong>. Click it to activate your account and receive your 40 free Forge credits.</p><small>It can take a minute. Check Spam or Promotions if it is not there.</small></div></div>`;
-    } catch (errorValue) { error.hidden = false; error.textContent = errorValue.message || "Authentication failed."; submit.disabled = false; submit.textContent = register ? "Create account →" : "Sign in →"; }
+    } catch (errorValue) { error.hidden = false; error.textContent = errorValue.message || "Authentication failed."; submit.disabled = false; submit.textContent = register ? "Create free account →" : "Sign in →"; }
   });
   document.body.append(overlay);
-  if (register) overlay.querySelector(".marketing-auth-submit").textContent = "Create account →";
+  if (register) overlay.querySelector(".marketing-auth-submit").textContent = "Create free account →";
   overlay.querySelector("input[type=email]")?.focus();
 }
 
@@ -467,7 +482,7 @@ function render() {
   if (path === "/reset-password") { document.querySelector("#app").innerHTML = passwordResetMarkup(); setupPasswordReset(); return; }
   if (path === "/app") {
     const root = document.querySelector("#app"); root.innerHTML = `<main class="app-route-loading" aria-live="polite">Checking your secure workspace…</main>`;
-    fetch("/api/auth/me", { credentials: "same-origin", cache: "no-store" }).then((response) => response.json()).then(async (state) => { if (state?.user) { const query = new URLSearchParams(window.location.search); if (query.get("signup") === "completed") { window.spriteforgeTrackX?.("SignUp", { status: "completed", conversion_id: query.get("signup_id") || undefined }); window.spriteforgeTrack?.("signup_verified", { metadata: { method: "email" } }); query.delete("auth"); query.delete("signup"); query.delete("signup_id"); history.replaceState({}, "", `/app${query.toString() ? `?${query}` : ""}`); } if (continuePendingCharacter()) return; if (await continuePendingAnimationUpload()) return; root.innerHTML = appStudioMarkup(); setupAppStudio({ initialAssetId: query.get("asset") || "", initialAnimationAssetId: query.get("animate") || "", initialEditorAssetId: query.get("edit") || "" }); return; } history.replaceState({}, "", "/"); render(); openMarketingAuth("login"); }).catch(() => { history.replaceState({}, "", "/"); render(); openMarketingAuth("login"); });
+    fetch("/api/auth/me", { credentials: "same-origin", cache: "no-store" }).then((response) => response.json()).then(async (state) => { if (state?.user) { const query = new URLSearchParams(window.location.search); if (query.get("signup") === "completed") { window.spriteforgeTrackX?.("SignUp", { status: "completed", conversion_id: query.get("signup_id") || undefined }); window.spriteforgeTrack?.("signup_verified", { metadata: { method: query.get("auth") === "google" ? "google" : "email" } }); window.spriteforgeTrackPendingFunnelConversion?.(query.get("auth") === "google" ? "google" : "email"); query.delete("auth"); query.delete("signup"); query.delete("signup_id"); history.replaceState({}, "", `/app${query.toString() ? `?${query}` : ""}`); } if (continuePendingCharacter()) return; if (await continuePendingAnimationUpload()) return; root.innerHTML = appStudioMarkup(); setupAppStudio({ initialAssetId: query.get("asset") || "", initialAnimationAssetId: query.get("animate") || "", initialEditorAssetId: query.get("edit") || "" }); return; } history.replaceState({}, "", "/"); render(); openMarketingAuth("login"); }).catch(() => { history.replaceState({}, "", "/"); render(); openMarketingAuth("login"); });
     return;
   }
   document.querySelector("#app").innerHTML = legalRoutes[path]?.() || (path === "/pricing" ? pricing() : path === "/docs" ? docs() : path === "/verify-email" ? `<main class="verification-page"><section class="verification-card"><img src="/assets/spriteforge-logo.png" alt="SpriteForge" /><span class="eyebrow">SPRITEFORGE ACCOUNT</span><span class="verification-orb" aria-hidden="true">✦</span><h1>Email verification</h1><p id="verify-email-status" data-state="loading">Verifying your email securely…</p><a class="verification-cta" href="/app" data-route="/app">Open workspace <b>→</b></a><small>Secure verification · Credits are granted once only.</small></section></main>` : path === "/app" ? appStudioMarkup() : path === "/pixel-grid-detector" ? pixelDetector() : path === "/tileset-base-generator" ? tileset() : path === "/character-creator" ? `${nav()}${characterCreatorMarkup({ theme: characterFunnelTheme, themes: characterFunnelThemes })}` : path === "/asset-generator" ? `${nav()}${assetGeneratorMarkup()}${footerNoDiscord()}` : home());
@@ -477,13 +492,14 @@ function render() {
     event.preventDefault();
     const brief = document.querySelector("#hero-character-brief")?.value.trim();
     if (!brief) return;
+    window.spriteforgeTrackCharacterPrompt?.(path);
     try {
       const response = await fetch("/api/auth/me", { credentials: "same-origin", cache: "no-store" });
       const state = await response.json();
       if (state?.user) { window.location.assign(`/character-creator?brief=${encodeURIComponent(brief)}`); return; }
     } catch { /* Authentication dialog is the safe fallback. */ }
     localStorage.setItem("spriteforge_pending_character_brief", brief);
-    openMarketingAuth("register");
+    openMarketingAuth("register", "character");
   });
   document.querySelector("#hero-animation-file")?.addEventListener("change", async (event) => {
     const input = event.currentTarget; const file = input.files?.[0]; const error = document.querySelector("#hero-animation-error"); if (!file) return;
@@ -492,10 +508,11 @@ function render() {
     if (error) error.hidden = true;
     try {
       await savePendingAnimationUpload(file);
+      window.spriteforgeTrackAnimationUpload?.(path);
       const response = await fetch("/api/auth/me", { credentials: "same-origin", cache: "no-store" }); const state = await response.json();
       if (state?.user) { window.location.assign("/app"); return; }
     } catch (cause) { if (error) { error.textContent = cause.message || "We could not prepare that image. Please try again."; error.hidden = false; } input.value = ""; return; }
-    openMarketingAuth("register");
+    openMarketingAuth("register", "animation");
   });
   document.querySelectorAll("[data-plan-signup]").forEach((button) => button.addEventListener("click", async () => {
     const planId = button.dataset.planSignup;
@@ -517,7 +534,7 @@ function render() {
     const status = document.querySelector("#verify-email-status"); const token = new URLSearchParams(window.location.search).get("token");
     fetch("/api/auth/verify-email", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ token }) }).then(async (response) => {
       const payload = await response.json(); if (!response.ok) throw new Error(payload.error || "Verification failed");
-      status.textContent = "Verified — your 40 free Forge credits are ready."; status.dataset.state = "success"; window.spriteforgeTrackX?.("SignUp", { status: "completed", conversion_id: payload.user?.id || undefined }); window.spriteforgeTrack?.("signup_verified", { metadata: { method: "email" } }); history.replaceState({}, "", "/verify-email");
+      status.textContent = "Verified — your 40 free Forge credits are ready."; status.dataset.state = "success"; window.spriteforgeTrackX?.("SignUp", { status: "completed", conversion_id: payload.user?.id || undefined }); window.spriteforgeTrack?.("signup_verified", { metadata: { method: "email" } }); window.spriteforgeTrackPendingFunnelConversion?.("email"); history.replaceState({}, "", "/verify-email");
     }).catch((error) => { status.textContent = error.message || "This verification link is invalid or has expired."; status.dataset.state = "error"; });
   }
   if (path === "/docs") {
