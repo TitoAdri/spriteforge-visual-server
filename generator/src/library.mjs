@@ -736,7 +736,9 @@ export function createLibrary(auth) {
     let bytes;
     try { bytes = await fs.readFile(path.join(root, file.storage_key)); } catch { throw new AuthError(404, "turnaround_source_missing", "The source image could not be read"); }
     if (!imageType(bytes)) throw new AuthError(415, "invalid_turnaround_source", "The source image is not a supported image");
-    return { asset: assetPublic(asset), bytes, mimeType: file.mime_type, filename: `sprite-turnaround-${asset.id}.png` };
+    let metadata;
+    try { metadata = await sharp(bytes, { animated: false, limitInputPixels: 16_000_000 }).metadata(); } catch { throw new AuthError(415, "invalid_turnaround_source", "The source image could not be decoded"); }
+    return { asset: assetPublic(asset), bytes, mimeType: file.mime_type, filename: `sprite-turnaround-${asset.id}.png`, variant: file.variant, width: metadata.width, height: metadata.height };
   };
   const revisionPublic = (revision) => ({ id: revision.id, number: revision.revision_number, width: revision.width, height: revision.height, frameCount: revision.frame_count, documentByteSize: revision.document_byte_size, gameReadyByteSize: revision.game_ready_byte_size, animationByteSize: revision.animation_byte_size || null, createdAt: revision.created_at });
   const editorInfo = async (request, assetId) => {

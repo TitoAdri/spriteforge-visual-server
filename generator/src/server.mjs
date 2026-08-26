@@ -16,7 +16,7 @@ import { CREDIT_COSTS, billingPlanForId, billingPlanForPriceId, creditCostForGen
 import { createBillingPortal, createCheckout, verifyWebhookSignature } from "./stripe.mjs";
 import { generateInternalPixelArt } from "./internal/openai-pixel-art.mjs";
 import { buildPixelArtPromptV3, createPixelGridScaffoldV3, pixelGridLayoutV3 } from "./internal/pixel-art-v3.mjs";
-import { normalizeTurnaround, turnaroundView } from "./turnaround.mjs";
+import { assessPlatformerTurnaround, normalizeTurnaround, turnaroundView } from "./turnaround.mjs";
 
 const envFile = path.join(path.dirname(fileURLToPath(import.meta.url)), "..", ".env");
 const envText = fs.existsSync(envFile) ? fs.readFileSync(envFile, "utf8") : "";
@@ -414,7 +414,8 @@ http.createServer(async (request, response) => {
       if (action !== "edit") throw new AuthError(400, "invalid_turnaround_action", "Sprite turnarounds must use image editing");
       turnaroundSource = await library.turnaroundSource(user, turnaround.sourceAssetId);
       const sourceRecipe = turnaroundSource.asset.recipe || {};
-      const sourceTarget = sourceRecipe.target && Number.isInteger(sourceRecipe.target.width) && Number.isInteger(sourceRecipe.target.height) ? sourceRecipe.target : recipe.target;
+      const sourceFileTarget = turnaroundSource.variant === "game-ready" && Number.isInteger(turnaroundSource.width) && Number.isInteger(turnaroundSource.height) && turnaroundSource.width >= 8 && turnaroundSource.width <= 256 && turnaroundSource.height >= 8 && turnaroundSource.height <= 256 ? { width: turnaroundSource.width, height: turnaroundSource.height } : null;
+      const sourceTarget = sourceFileTarget || (sourceRecipe.target && Number.isInteger(sourceRecipe.target.width) && Number.isInteger(sourceRecipe.target.height) ? sourceRecipe.target : recipe.target);
       recipe = normalizeRecipe({
         ...sourceRecipe,
         ...recipe,
@@ -456,11 +457,15 @@ http.createServer(async (request, response) => {
     generationJob = library.createGenerationJob(debit.user, { provider: providerName, model: null, idempotencyKey });
     if (action === "edit" && !body.anchor?.base64 && !turnaroundSource) throw new Error("anchor.base64 is required for edits");
     const args = {
-      recipe, tier: "draft", change: body.change,
+      recipe, tier: turnaround ? "final" : "draft", change: body.change,
       previousInteractionId: body.previousInteractionId || null,
       anchor: turnaroundSource || (body.anchor ? { bytes: Buffer.from(body.anchor.base64, "base64"), mimeType: body.anchor.mimeType, filename: body.anchor.filename } : undefined),
     };
     const result = usePixelArtV3 ? await generateCharacterV3(recipe) : useTransparentAssetV2 ? await generateTransparentAssetV2(recipe) : await provider[action](args);
+    if (turnaround?.projection === "platformer") {
+      const assessment = await assessPlatformerTurnaround(turnaroundSource.bytes, result.image);
+      if (!assessment.changed) throw new AuthError(422, "turnaround_direction_not_changed", "The model kept the original facing direction");
+    }
     const savedAsset = await library.saveGenerationResult(debit.user, generationJob, { provider: result.provider, model: result.model, recipe, bytes: result.image, mimeType: result.mimeType, themeId: body.themeId || null, collectionId: packItem?.pack.collection_id || tilesetTile?.tileset.collection_id || animationFrame?.clip.collection_id || null, parentAssetId: turnaroundSource?.asset.id || animationFrame?.clip.source_asset_id || null });
     if (packItem) library.completePackItem(debit.user, packItem.id, savedAsset.id);
     if (tilesetTile) library.completeTilesetTile(debit.user, tilesetTile.id, savedAsset.id);

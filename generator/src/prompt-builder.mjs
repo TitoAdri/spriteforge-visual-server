@@ -199,7 +199,7 @@ export function buildTurnaroundPrompt(recipeInput) {
   const t = normalizeTurnaround(r.turnaround);
   const platformer = t.projection === "platformer";
   const projection = platformer
-    ? "Use the same fixed orthographic 2D side-view camera and the same baseline. Create a genuine view of the opposite physical side; do not merely mirror the pixels."
+    ? "Use the same fixed orthographic 2D side-view camera and the same baseline. Image 2 is a horizontally mirrored spatial guide for target facing, pose envelope, placement and silhouette only. Create a genuine view of the opposite physical side; do not merely mirror the identity, costume details or pixels. Image 1 remains authoritative for identity and physical-side ownership."
     : `Use the exact same fixed parallel isometric camera, elevation, foreshortening, scale and ground-plane orientation as Image 1. The requested target is ${DIRECTION_DESCRIPTIONS[t.targetDirection]}.`;
   const rotation = platformer
     ? `Rotate the character 180 degrees around its vertical axis, from ${t.sourceDirection}-facing to ${t.targetDirection}-facing.`

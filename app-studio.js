@@ -4,7 +4,7 @@ import { assetPackMarkup, setupAssetPack } from "/asset-pack.js?v=7";
 import { tilesetMarkup, setupTileset } from "/tileset.js?v=7";
 import { animation4Markup, setupAnimation4 } from "/animation4.js?v=14";
 import { manualEditorMarkup, setupManualEditor } from "/manual-editor.js?v=23";
-import { spriteTurnaroundMarkup, setupSpriteTurnaround } from "/sprite-turnaround.js?v=1";
+import { spriteTurnaroundMarkup, setupSpriteTurnaround } from "/sprite-turnaround.js?v=2";
 import { processPixelGrid, quantizePalette } from "/pixel-grid-core.js?v=2";
 
 const asset = (path) => `/assets/${path}`;

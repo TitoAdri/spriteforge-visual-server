@@ -11,14 +11,15 @@ function headers() {
   return { Authorization: `Bearer ${assertKey("OPENAI_API_KEY")}` };
 }
 
-async function compactReference(reference, fallbackName, { upscale = false } = {}) {
+async function compactReference(reference, fallbackName, { upscale = false, maxSide = REFERENCE_MAX_SIDE, mirror = false } = {}) {
   // Reference images influence OpenAI's billed image-input tokens according
   // to their dimensions. The model only needs visual direction here, not a
-  // full-resolution source file. Nearest-neighbour preserves hard pixel edges
-  // while keeping the image below a compact 512px working side.
-  const bytes = await sharp(reference.bytes, { animated: false, limitInputPixels: 16_000_000 })
-    .rotate()
-    .resize({ width: REFERENCE_MAX_SIDE, height: REFERENCE_MAX_SIDE, fit: "inside", withoutEnlargement: !upscale, kernel: sharp.kernel.nearest })
+  // full-resolution source file. Nearest-neighbour preserves hard pixel edges.
+  // Normal style references stay at 512px; identity turnarounds opt into 1024px.
+  let pipeline = sharp(reference.bytes, { animated: false, limitInputPixels: 16_000_000 }).rotate();
+  if (mirror) pipeline = pipeline.flop();
+  const bytes = await pipeline
+    .resize({ width: maxSide, height: maxSide, fit: "inside", withoutEnlargement: !upscale, kernel: sharp.kernel.nearest })
     .png({ compressionLevel: 9 })
     .toBuffer();
   return { blob: new Blob([bytes], { type: "image/png" }), filename: fallbackName };
@@ -58,8 +59,13 @@ export async function editOpenAI({ recipe, change, anchor, tier = "draft" }) {
   if (recipe.internalVariant === "sprite-turnaround") {
     form.set("background", "transparent");
   }
-  const anchorImage = await compactReference(anchor, anchor.filename || "anchor.png", { upscale: recipe.internalVariant === "sprite-turnaround" });
+  const turnaround = recipe.internalVariant === "sprite-turnaround";
+  const anchorImage = await compactReference(anchor, anchor.filename || "anchor.png", { upscale: turnaround, maxSide: turnaround ? 1024 : REFERENCE_MAX_SIDE });
   form.append("image[]", anchorImage.blob, anchorImage.filename);
+  if (turnaround && recipe.turnaround?.projection === "platformer") {
+    const guide = await compactReference(anchor, "target-facing-guide.png", { upscale: true, maxSide: 1024, mirror: true });
+    form.append("image[]", guide.blob, guide.filename);
+  }
   for (const [index, reference] of (recipe.references || []).entries()) {
     const image = await compactReference(reference, `reference-${index + 1}.png`);
     form.append("image[]", image.blob, image.filename);

@@ -1,7 +1,8 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import sharp from "sharp";
 import { assetV2GridLayout, buildAssetPromptV2, buildBasePrompt, buildEditPrompt, buildTurnaroundPrompt } from "../src/prompt-builder.mjs";
-import { normalizeTurnaround } from "../src/turnaround.mjs";
+import { assessPlatformerTurnaround, normalizeTurnaround } from "../src/turnaround.mjs";
 import { normalizeRecipe, outputPlan } from "../src/recipes.mjs";
 import { buildGenerateContentPayload, imageFromGenerateContent } from "../src/providers/gemini.mjs";
 
@@ -108,8 +109,9 @@ test("platformer turnaround prompt rotates the character without mirroring or mo
     turnaround: { sourceAssetId: "11111111-1111-4111-8111-111111111111", projection: "platformer", sourceDirection: "right", targetDirection: "left", bodyType: "biped" },
   });
   assert.match(prompt, /180 degrees around its vertical axis/);
-  assert.match(prompt, /do not merely mirror the pixels/i);
+  assert.match(prompt, /do not merely mirror.*pixels/i);
   assert.match(prompt, /same fixed orthographic 2D side-view camera/i);
+  assert.match(prompt, /Image 2 is a horizontally mirrored spatial guide/i);
   assert.match(prompt, /physical left\/right ownership/i);
   assert.match(prompt, /48x72 game sprite/);
   assert.match(prompt, /genuine alpha transparency/i);
@@ -130,4 +132,14 @@ test("isometric turnaround prompt describes a fixed-camera directional rotation 
 test("four-direction isometric turnaround accepts only diagonal game directions", () => {
   assert.throws(() => normalizeTurnaround({ sourceAssetId: "33333333-3333-4333-8333-333333333333", projection: "isometric", directionCount: 4, sourceDirection: "down", targetDirection: "up", bodyType: "biped" }), /diagonal game directions/);
   assert.equal(normalizeTurnaround({ sourceAssetId: "33333333-3333-4333-8333-333333333333", projection: "isometric", directionCount: 4, sourceDirection: "down-left", targetDirection: "up-right", bodyType: "biped" }).targetDirection, "up-right");
+});
+
+test("platformer turnaround validation rejects an unchanged asymmetric silhouette", async () => {
+  const width = 32, height = 32, pixels = Buffer.alloc(width * height * 4);
+  const paint = (left, top, right, bottom) => { for (let y = top; y < bottom; y += 1) for (let x = left; x < right; x += 1) { const index = (y * width + x) * 4; pixels[index] = 255; pixels[index + 1] = 255; pixels[index + 2] = 255; pixels[index + 3] = 255; } };
+  paint(7, 5, 13, 28); paint(13, 9, 26, 14);
+  const source = await sharp(pixels, { raw: { width, height, channels: 4 } }).png().toBuffer();
+  const mirrored = await sharp(source).flop().png().toBuffer();
+  assert.equal((await assessPlatformerTurnaround(source, source)).changed, false);
+  assert.equal((await assessPlatformerTurnaround(source, mirrored)).changed, true);
 });
