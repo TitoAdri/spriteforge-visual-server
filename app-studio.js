@@ -4,7 +4,7 @@ import { assetPackMarkup, setupAssetPack } from "/asset-pack.js?v=7";
 import { tilesetMarkup, setupTileset } from "/tileset.js?v=7";
 import { animation4Markup, setupAnimation4 } from "/animation4.js?v=14";
 import { manualEditorMarkup, setupManualEditor } from "/manual-editor.js?v=23";
-import { spriteTurnaroundMarkup, setupSpriteTurnaround } from "/sprite-turnaround.js?v=3";
+import { spriteTurnaroundMarkup, setupSpriteTurnaround } from "/sprite-turnaround.js?v=4";
 import { processPixelGrid, quantizePalette } from "/pixel-grid-core.js?v=2";
 
 const asset = (path) => `/assets/${path}`;
@@ -191,7 +191,7 @@ export function setupAppStudio({ initialAssetId = "", initialAnimationAssetId = 
     if (next === "tileset") setupTileset({ theme: activeTheme(), tilesets, onChanged: loadLibrary, onNotice: notify });
     if (next === "animation") setupAnimation4({ theme: activeTheme(), assets, jobs: pixelEngineJobs, initialAssetId: animationSourceId, onChanged: loadLibrary, onNotice: notify });
     if (next === "manual-editor") activeManualEditor = setupManualEditor({ assets, initialAssetId: editorAssetId, onNavigate: (id) => { editorAssetId = id; setView("manual-editor"); }, onChanged: loadLibrary, onNotice: notify });
-    if (next === "sprite-turnaround") setupSpriteTurnaround({ assets, onSaved: async () => { await loadLibrary(); notify("Turnaround saved as a derived asset in your private library."); }, onNotice: notify });
+    if (next === "sprite-turnaround") setupSpriteTurnaround({ assets, onSaved: async () => { await loadLibrary({ refreshCurrent: false }); notify("Turnaround saved as a derived asset in your private library."); }, onNotice: notify });
     wireEditorThemeControl(next);
     if (promptText) window.setTimeout(() => prefillEditorPrompt(next, promptText), 0);
   };
@@ -227,7 +227,8 @@ export function setupAppStudio({ initialAssetId = "", initialAnimationAssetId = 
     updateAuthControl();
     if (authState.user) await loadLibrary();
   };
-  const loadLibrary = async () => {
+  const loadLibrary = async (options = {}) => {
+    const refreshCurrent = options?.refreshCurrent !== false;
     try {
       const response = await fetch("/api/library", { credentials: "same-origin", cache: "no-store" });
       if (!response.ok) throw new Error("Unable to load library");
@@ -251,7 +252,7 @@ export function setupAppStudio({ initialAssetId = "", initialAnimationAssetId = 
         background: item.files["game-ready"] || item.files.animation ? "Transparent" : "Original",
       }));
       libraryLoaded = true;
-      if (view === "assets" || view === "home" || view === "asset-pack" || view === "tileset" || view === "animation") setView(view);
+      if (refreshCurrent && (view === "assets" || view === "home" || view === "asset-pack" || view === "tileset" || view === "animation" || view === "sprite-turnaround")) setView(view);
     } catch { if (libraryLoaded) notify("Your library could not be refreshed."); }
   };
   const openAuth = (mode = "login") => {
