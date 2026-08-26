@@ -34,7 +34,14 @@ export function setupSpriteTurnaround({ assets = [], onSaved, onNotice } = {}) {
   const setScreen = (name, message = "") => { Object.entries(screens).forEach(([key, node]) => { node.hidden = key !== name; }); if (name === "error") screens.error.textContent = message; };
   const sourceUrl = () => state.uploadedUrl || imageFor(state.source);
   const targetDimensions = () => { const target = state.source?.recipe?.target; return state.sourceDimensions || (Number.isInteger(target?.width) && Number.isInteger(target?.height) ? { width: target.width, height: target.height } : { width: 64, height: 64 }); };
-  const syncSource = () => { const url = sourceUrl(); const preview = root.querySelector("#turnaround-source-preview"); preview.src = url; preview.hidden = !url; root.querySelector("#turnaround-source-name").textContent = state.source?.name || "No source selected"; generate.disabled = !state.source; state.sourceDimensions = null; if (url) { const probe = new Image(); probe.onload = () => { const scale = Math.min(1, 128 / Math.max(probe.naturalWidth, probe.naturalHeight)); state.sourceDimensions = { width: Math.max(8, Math.min(256, Math.round(probe.naturalWidth * scale))), height: Math.max(8, Math.min(256, Math.round(probe.naturalHeight * scale))) }; }; probe.src = url; } };
+  const syncSource = () => {
+    const url = sourceUrl(); const preview = root.querySelector("#turnaround-source-preview"); const selector = root.querySelector("#turnaround-source");
+    if (state.source?.id && !available.some((item) => item.id === state.source.id)) available.unshift(state.source);
+    if (state.source?.id && !Array.from(selector.options).some((option) => option.value === state.source.id)) { const option = document.createElement("option"); option.value = state.source.id; option.textContent = `${state.source.name} · ${state.source.type || state.source.kind || "Asset"}`; selector.prepend(option); }
+    if (state.source?.id) { selector.disabled = false; selector.value = state.source.id; }
+    preview.src = url; preview.hidden = !url; root.querySelector("#turnaround-source-name").textContent = state.source?.name || "No source selected"; generate.disabled = !state.source; state.sourceDimensions = null;
+    if (url) { const probe = new Image(); probe.onload = () => { const scale = Math.min(1, 128 / Math.max(probe.naturalWidth, probe.naturalHeight)); state.sourceDimensions = { width: Math.max(8, Math.min(256, Math.round(probe.naturalWidth * scale))), height: Math.max(8, Math.min(256, Math.round(probe.naturalHeight * scale))) }; }; probe.src = url; }
+  };
   const directions = () => state.projection === "platformer" ? ["left", "right"] : state.directionCount === 4 ? ISO_4 : ISO_8;
   const renderDirections = () => {
     const allowed = directions(); if (!allowed.includes(state.sourceDirection)) state.sourceDirection = state.projection === "platformer" ? "right" : "down-left"; if (!allowed.includes(state.targetDirection) || state.targetDirection === state.sourceDirection) state.targetDirection = allowed.find((item) => item !== state.sourceDirection);
