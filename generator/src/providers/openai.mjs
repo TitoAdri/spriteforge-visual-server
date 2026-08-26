@@ -57,7 +57,6 @@ export async function editOpenAI({ recipe, change, anchor, tier = "draft" }) {
   form.set("output_format", plan.outputFormat);
   if (recipe.internalVariant === "sprite-turnaround") {
     form.set("background", "transparent");
-    form.set("input_fidelity", "high");
   }
   const anchorImage = await compactReference(anchor, anchor.filename || "anchor.png", { upscale: recipe.internalVariant === "sprite-turnaround" });
   form.append("image[]", anchorImage.blob, anchorImage.filename);
