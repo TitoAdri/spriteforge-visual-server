@@ -199,18 +199,23 @@ export function buildTurnaroundPrompt(recipeInput) {
   const t = normalizeTurnaround(r.turnaround);
   const platformer = t.projection === "platformer";
   const projection = platformer
-    ? "Use the same fixed orthographic 2D side-view camera and the same baseline. Image 2 is a horizontally mirrored spatial guide for target facing, pose envelope, placement and silhouette only. Create a genuine view of the opposite physical side; do not merely mirror the identity, costume details or pixels. Image 1 remains authoritative for identity and physical-side ownership."
+    ? "Use the same fixed orthographic 2D side-view camera and the same baseline. Image 1 is a horizontally mirrored spatial guide derived from the approved source; it is authoritative for target facing, pose envelope, placement, silhouette and the screen-side positions of all asymmetries. Reconstruct a genuine view of the opposite physical side; do not merely mirror the identity, costume details or source pixels, and do not simply return the guide pixels. Image 2 remains authoritative for identity, materials and physical-side ownership."
     : `Use the exact same fixed parallel isometric camera, elevation, foreshortening, scale and ground-plane orientation as Image 1. The requested target is ${DIRECTION_DESCRIPTIONS[t.targetDirection]}.`;
   const rotation = platformer
     ? `Rotate the character 180 degrees around its vertical axis, from ${t.sourceDirection}-facing to ${t.targetDirection}-facing.`
     : `Rotate only the character ${isometricRotation(t.sourceDirection, t.targetDirection)}, from ${DIRECTION_DESCRIPTIONS[t.sourceDirection]} to ${DIRECTION_DESCRIPTIONS[t.targetDirection]}. Do not orbit, tilt, zoom or move the camera.`;
+  const identityImage = platformer ? "Image 2" : "Image 1";
   const hidden = t.hiddenDetails
-    ? `When newly visible surfaces are not shown in Image 1, reveal only these user-specified details: ${t.hiddenDetails}. Infer the minimum connecting geometry needed; do not invent additional ornaments.`
+    ? `When newly visible surfaces are not shown in ${identityImage}, reveal only these user-specified details: ${t.hiddenDetails}. Infer the minimum connecting geometry needed; do not invent additional ornaments.`
     : "For newly visible surfaces, infer only the minimum plausible continuation of visible materials, colors, seams and anatomy. Do not invent logos, ornaments, weapons, pockets or accessories.";
+  const imageAuthority = platformer
+    ? "Image 1 is the target-facing spatial anchor: its screen-side placement of the body, hands, weapon, shield and every carried item is mandatory. Image 2 is the approved unmirrored identity source and is authoritative for character identity, materials and which physical hand or body side owns each item."
+    : "Image 1 is the approved identity and style anchor.";
 
   return [
     "TASK — SPRITE TURNAROUND:",
-    "Image 1 is the approved identity and style anchor. Produce exactly one new sprite of that same character at the requested facing direction.",
+    imageAuthority,
+    "Produce exactly one new sprite of that same character at the requested facing direction.",
     "This is a controlled viewpoint reconstruction, not a redesign, pose change, animation frame or new character.",
     "",
     "VIEW SYSTEM:",
@@ -220,7 +225,8 @@ export function buildTurnaroundPrompt(recipeInput) {
     "IDENTITY AND ASYMMETRY:",
     "Preserve the same character identity, anatomy, proportions, silhouette mass, costume, equipment, materials, palette, outline language and apparent pixel size.",
     "Preserve physical left/right ownership of every asymmetric feature. A shield, scar, pouch, shoulder pad or weapon stays attached to the same physical side of the character even when it moves to the opposite side of the image.",
-    "Do not copy screen-left and screen-right placement as if the source were a mirror template.",
+    platformer ? "HARD EQUIPMENT-SIDE LOCK: every held or carried item must occupy the screen side shown in Image 1, opposite its screen side in Image 2. The weapon and shield must trade screen sides without trading physical hands. Do not move an item back to a familiar or conventional hand." : null,
+    platformer ? "Do not preserve the source's screen-left/screen-right arrangement from Image 2; use Image 1 for the required target-side arrangement." : "Do not copy screen-left and screen-right placement as if the source were a mirror template.",
     "",
     "BODY AND POSE LOCK:",
     `Treat the subject as a ${t.bodyType === "biped" ? "biped with coherent shoulders, hips, hands and feet" : t.bodyType === "quadruped" ? "quadruped with coherent forelegs, hind legs, spine and tail" : "custom body plan whose visible joint relationships must remain coherent"}.`,
@@ -233,6 +239,6 @@ export function buildTurnaroundPrompt(recipeInput) {
     "",
     "OUTPUT CONTRACT:",
     "Return one isolated sprite only on genuine alpha transparency. No backdrop, checkerboard, floor, cast shadow, halo, text, labels, direction arrows, guide lines, extra views, sprite sheet or duplicated character.",
-    "Before finishing, verify the target facing, fixed camera, physical-side asymmetries, pose lock, limb count, silhouette scale and transparent background against Image 1.",
-  ].join("\n");
+    platformer ? "Before finishing, compare both images: match Image 1 for target facing and exact screen-side equipment placement; match Image 2 for identity and physical-side ownership. Verify pose lock, limb count, silhouette scale and transparency." : "Before finishing, verify the target facing, fixed camera, physical-side asymmetries, pose lock, limb count, silhouette scale and transparent background against Image 1.",
+  ].filter((line) => line !== null).join("\n");
 }

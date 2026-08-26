@@ -61,10 +61,12 @@ export async function editOpenAI({ recipe, change, anchor, tier = "draft" }) {
   }
   const turnaround = recipe.internalVariant === "sprite-turnaround";
   const anchorImage = await compactReference(anchor, anchor.filename || "anchor.png", { upscale: turnaround, maxSide: turnaround ? 1024 : REFERENCE_MAX_SIDE });
-  form.append("image[]", anchorImage.blob, anchorImage.filename);
   if (turnaround && recipe.turnaround?.projection === "platformer") {
     const guide = await compactReference(anchor, "target-facing-guide.png", { upscale: true, maxSide: 1024, mirror: true });
     form.append("image[]", guide.blob, guide.filename);
+    form.append("image[]", anchorImage.blob, anchorImage.filename);
+  } else {
+    form.append("image[]", anchorImage.blob, anchorImage.filename);
   }
   for (const [index, reference] of (recipe.references || []).entries()) {
     const image = await compactReference(reference, `reference-${index + 1}.png`);
