@@ -108,17 +108,24 @@ test("platformer turnaround prompt rotates the character without mirroring or mo
     internalVariant: "sprite-turnaround",
     turnaround: { sourceAssetId: "11111111-1111-4111-8111-111111111111", projection: "platformer", sourceDirection: "right", targetDirection: "left", bodyType: "biped" },
   });
-  assert.match(prompt, /180 degrees around its vertical axis/);
-  assert.match(prompt, /do not merely mirror.*pixels/i);
+  assert.match(prompt, /180-degree turn around.*vertical axis/i);
   assert.match(prompt, /same fixed orthographic 2D side-view camera/i);
-  assert.match(prompt, /Image 1 is the target-facing spatial anchor/i);
-  assert.match(prompt, /Image 1 is a horizontally mirrored spatial guide/i);
-  assert.match(prompt, /Image 2 remains authoritative for identity/i);
-  assert.match(prompt, /HARD EQUIPMENT-SIDE LOCK/i);
-  assert.match(prompt, /weapon and shield must trade screen sides without trading physical hands/i);
-  assert.match(prompt, /physical left\/right ownership/i);
-  assert.match(prompt, /48x72 game sprite/);
-  assert.match(prompt, /genuine alpha transparency/i);
+  assert.match(prompt, /Image 1 is the sole authority for identity/i);
+  assert.doesNotMatch(prompt, /Image 2/i);
+  assert.match(prompt, /SCREEN-SPACE EQUIPMENT LOCK/i);
+  assert.match(prompt, /same side of the canvas as Image 1/i);
+  assert.match(prompt, /smallest possible change/i);
+  assert.match(prompt, /48x72 sprite/i);
+  assert.match(prompt, /transparent pixel-art sprite/i);
+});
+
+test("platformer can rotate equipment with the physical side when explicitly requested", () => {
+  const normalized = normalizeTurnaround({ sourceAssetId: "11111111-1111-4111-8111-111111111111", projection: "platformer", sourceDirection: "right", targetDirection: "left", bodyType: "biped", equipmentMode: "physical-side" });
+  const prompt = buildTurnaroundPrompt({ internalVariant: "sprite-turnaround", turnaround: normalized });
+  assert.equal(normalized.equipmentMode, "physical-side");
+  assert.match(prompt, /PHYSICAL-SIDE EQUIPMENT LOCK/i);
+  assert.match(prompt, /may move to the opposite side of the canvas/i);
+  assert.throws(() => normalizeTurnaround({ ...normalized, equipmentMode: "guess" }), /equipment placement mode/i);
 });
 
 test("isometric turnaround prompt describes a fixed-camera directional rotation and hidden surfaces", () => {

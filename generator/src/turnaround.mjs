@@ -3,6 +3,7 @@ import sharp from "sharp";
 export const ISOMETRIC_DIRECTIONS = Object.freeze(["up", "up-right", "right", "down-right", "down", "down-left", "left", "up-left"]);
 export const PLATFORMER_DIRECTIONS = Object.freeze(["left", "right"]);
 export const TURNAROUND_BODY_TYPES = Object.freeze(["biped", "quadruped", "other"]);
+export const PLATFORMER_EQUIPMENT_MODES = Object.freeze(["screen-locked", "physical-side"]);
 
 const cleanNote = (value) => String(value || "").trim().replace(/\s+/g, " ");
 class TurnaroundError extends Error { constructor(code, message) { super(message); this.status = 400; this.code = code; } }
@@ -23,9 +24,11 @@ export function normalizeTurnaround(input) {
   if (sourceDirection === targetDirection) throw new TurnaroundError("unchanged_turnaround_direction", "Target direction must differ from source direction");
   const bodyType = String(input.bodyType || "biped").toLowerCase();
   if (!TURNAROUND_BODY_TYPES.includes(bodyType)) throw new TurnaroundError("invalid_turnaround_body_type", "Choose a valid body type");
+  const equipmentMode = projection === "platformer" ? String(input.equipmentMode || "screen-locked").toLowerCase() : "physical-side";
+  if (!PLATFORMER_EQUIPMENT_MODES.includes(equipmentMode)) throw new TurnaroundError("invalid_turnaround_equipment_mode", "Choose a valid equipment placement mode");
   const hiddenDetails = cleanNote(input.hiddenDetails);
   if (hiddenDetails.length > 500) throw new TurnaroundError("invalid_turnaround_hidden_details", "Hidden-side notes must be 500 characters or fewer");
-  return { sourceAssetId, projection, directionCount, sourceDirection, targetDirection, bodyType, hiddenDetails };
+  return { sourceAssetId, projection, directionCount, sourceDirection, targetDirection, bodyType, equipmentMode, hiddenDetails };
 }
 
 export function turnaroundView(turnaround) {

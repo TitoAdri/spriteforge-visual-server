@@ -11,13 +11,12 @@ function headers() {
   return { Authorization: `Bearer ${assertKey("OPENAI_API_KEY")}` };
 }
 
-async function compactReference(reference, fallbackName, { upscale = false, maxSide = REFERENCE_MAX_SIDE, mirror = false } = {}) {
+async function compactReference(reference, fallbackName, { upscale = false, maxSide = REFERENCE_MAX_SIDE } = {}) {
   // Reference images influence OpenAI's billed image-input tokens according
   // to their dimensions. The model only needs visual direction here, not a
   // full-resolution source file. Nearest-neighbour preserves hard pixel edges.
   // Normal style references stay at 512px; identity turnarounds opt into 1024px.
   let pipeline = sharp(reference.bytes, { animated: false, limitInputPixels: 16_000_000 }).rotate();
-  if (mirror) pipeline = pipeline.flop();
   const bytes = await pipeline
     .resize({ width: maxSide, height: maxSide, fit: "inside", withoutEnlargement: !upscale, kernel: sharp.kernel.nearest })
     .png({ compressionLevel: 9 })
@@ -61,13 +60,7 @@ export async function editOpenAI({ recipe, change, anchor, tier = "draft" }) {
   }
   const turnaround = recipe.internalVariant === "sprite-turnaround";
   const anchorImage = await compactReference(anchor, anchor.filename || "anchor.png", { upscale: turnaround, maxSide: turnaround ? 1024 : REFERENCE_MAX_SIDE });
-  if (turnaround && recipe.turnaround?.projection === "platformer") {
-    const guide = await compactReference(anchor, "target-facing-guide.png", { upscale: true, maxSide: 1024, mirror: true });
-    form.append("image[]", guide.blob, guide.filename);
-    form.append("image[]", anchorImage.blob, anchorImage.filename);
-  } else {
-    form.append("image[]", anchorImage.blob, anchorImage.filename);
-  }
+  form.append("image[]", anchorImage.blob, anchorImage.filename);
   for (const [index, reference] of (recipe.references || []).entries()) {
     const image = await compactReference(reference, `reference-${index + 1}.png`);
     form.append("image[]", image.blob, image.filename);

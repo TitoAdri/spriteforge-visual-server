@@ -462,7 +462,10 @@ http.createServer(async (request, response) => {
       anchor: turnaroundSource || (body.anchor ? { bytes: Buffer.from(body.anchor.base64, "base64"), mimeType: body.anchor.mimeType, filename: body.anchor.filename } : undefined),
     };
     const result = usePixelArtV3 ? await generateCharacterV3(recipe) : useTransparentAssetV2 ? await generateTransparentAssetV2(recipe) : await provider[action](args);
-    if (turnaround?.projection === "platformer") {
+    // A screen-locked platformer turn deliberately keeps asymmetric equipment
+    // on its original canvas side, so whole-silhouette mirroring is not a valid
+    // direction test for that mode. Keep the mirror check for physical turns.
+    if (turnaround?.projection === "platformer" && turnaround.equipmentMode === "physical-side") {
       const assessment = await assessPlatformerTurnaround(turnaroundSource.bytes, result.image);
       if (!assessment.changed) throw new AuthError(422, "turnaround_direction_not_changed", "The model kept the original facing direction");
     }
