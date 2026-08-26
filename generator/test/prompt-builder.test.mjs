@@ -111,7 +111,11 @@ test("platformer turnaround prompt rotates the character without mirroring or mo
   assert.match(prompt, /180 degrees around its vertical axis/);
   assert.match(prompt, /do not merely mirror.*pixels/i);
   assert.match(prompt, /same fixed orthographic 2D side-view camera/i);
-  assert.match(prompt, /Image 2 is a horizontally mirrored spatial guide/i);
+  assert.match(prompt, /Image 1 is the target-facing spatial anchor/i);
+  assert.match(prompt, /Image 1 is a horizontally mirrored spatial guide/i);
+  assert.match(prompt, /Image 2 remains authoritative for identity/i);
+  assert.match(prompt, /HARD EQUIPMENT-SIDE LOCK/i);
+  assert.match(prompt, /weapon and shield must trade screen sides without trading physical hands/i);
   assert.match(prompt, /physical left\/right ownership/i);
   assert.match(prompt, /48x72 game sprite/);
   assert.match(prompt, /genuine alpha transparency/i);
