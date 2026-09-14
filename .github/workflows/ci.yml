@@ -51,3 +51,11 @@ jobs:
       - name: Check patch whitespace
         working-directory: .
         run: git diff --check
+
+      - name: Build frontend image
+        working-directory: .
+        run: docker build --tag spriteforge-visual:ci .
+
+      - name: Build API image
+        working-directory: .
+        run: docker build --tag spriteforge-generator-api:ci generator
