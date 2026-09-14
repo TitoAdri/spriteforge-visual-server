@@ -4,12 +4,12 @@ Documento vivo. Última actualización: 30 de julio de 2026.
 
 ## Estado actual
 
-- Sitio público y área `/app` desplegados en `http://91.98.156.61:3001`.
+- Sitio público y área `/app` desplegados detrás del dominio HTTPS configurado para el entorno.
 - Pixel Grid Detector funciona localmente en el navegador: detección, malla manual, paleta, descarga y vista ampliada.
 - Character Creator genera y normaliza cuando el generador está habilitado; actualmente está apagado por coste y seguridad.
 - El flujo de composición de fondo protegido y limpieza de croma se encuentra implementado para la normalización game-ready.
 - Base de autenticación, sesiones y créditos desplegada, pero **bloqueada de forma intencionada mientras el sitio sólo tenga HTTP por IP**.
-- Modo de autenticación HTTP de pruebas temporalmente activo en la IP actual. No es apto para usuarios reales, pagos ni datos valiosos; debe desactivarse al activar HTTPS.
+- Modo de autenticación HTTP de pruebas temporalmente activo en un entorno de desarrollo. No es apto para usuarios reales, pagos ni datos valiosos; debe desactivarse al activar HTTPS.
 - La interfaz App incluye prototipos navegables de biblioteca, proyectos, temas, referencias, presets y detalle de asset. Todavía no son persistentes.
 
 ## Principios no negociables

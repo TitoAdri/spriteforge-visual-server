@@ -1,1 +1,3 @@
-17 3 * * * root /opt/spriteforge-visual/ops/backup-auth-db.sh >/dev/null 2>&1
+# Install this entry in the target host after setting SPRITEFORGE_APP_DIR and
+# SPRITEFORGE_BACKUP_DIR for that environment.
+17 3 * * * root /usr/local/sbin/spriteforge-auth-backup >/dev/null 2>&1

@@ -1,9 +1,8 @@
 .env
 .env.*
 data
-*.db
-*.sqlite
-*.sqlite3
-*backup*
+node_modules
 evals/results
-test
+*.db
+*.db-*
+.git

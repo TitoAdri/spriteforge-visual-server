@@ -1,16 +1,17 @@
 .git
+.git/**
+.github
+AGENTS.md
 README.md
-# The backend is built by its own Docker context. Never copy it into the
-# public Nginx image (this also prevents private data and source from being
-# accidentally served as static files).
 generator
 ops
-# Defensive exclusions for any future secrets/backups in the build context.
+node_modules
+**/node_modules
 **/.env
 **/.env.*
-**/*backup*
+**/data
 **/*.db
-**/*.sqlite
-**/*.sqlite3
-generator/.env
-generator/evals/results
+**/*.db-*
+**/evals/results
+Dockerfile
+docker-compose.yml

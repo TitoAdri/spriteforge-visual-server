@@ -4,9 +4,9 @@ set -Eeuo pipefail
 # Host-side backup for the SQLite auth/library database. The database is
 # snapshotted inside the API container with SQLite's online VACUUM INTO, so
 # the live WAL is never copied directly. Backups stay outside the web volume.
-APP_DIR="/opt/spriteforge-visual"
+APP_DIR="${SPRITEFORGE_APP_DIR:-/srv/spriteforge}"
 CONTAINER="spriteforge-generator-api"
-BACKUP_DIR="/opt/spriteforge-backups"
+BACKUP_DIR="${SPRITEFORGE_BACKUP_DIR:-/srv/spriteforge-backups}"
 CONTAINER_SNAPSHOT="/tmp/spriteforge-auth-backup.db"
 CONTAINER_ARCHIVE="/tmp/spriteforge-data-backup.tar.gz"
 
