@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { TEMPORAL_EDIT_MOTIONS, temporalEditPrompt, temporalPhaseFor } from "../../animation-temporal.js";
+import { TEMPORAL_EDIT_MOTIONS, temporalEditPrompt, temporalPhaseFor } from "../../archive/animation-experiments/animation-temporal.js";
 
 test("only idle and walk use sequential temporal editing", () => {
   assert.deepEqual([...TEMPORAL_EDIT_MOTIONS], ["idle", "walk"]);

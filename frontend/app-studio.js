@@ -1,11 +1,11 @@
-import { characterCreatorMarkup, setupCharacterCreator } from "/character-creator.js?v=35";
-import { assetGeneratorMarkup, setupAssetGenerator } from "/asset-generator.js?v=15";
-import { assetPackMarkup, setupAssetPack } from "/asset-pack.js?v=7";
-import { tilesetMarkup, setupTileset } from "/tileset.js?v=7";
-import { animation4Markup, setupAnimation4 } from "/animation4.js?v=14";
-import { manualEditorMarkup, setupManualEditor } from "/manual-editor.js?v=23";
-import { spriteTurnaroundMarkup, setupSpriteTurnaround } from "/sprite-turnaround.js?v=4";
-import { processPixelGrid, quantizePalette } from "/pixel-grid-core.js?v=2";
+import { characterCreatorMarkup, setupCharacterCreator } from "/frontend/character-creator.js?v=35";
+import { assetGeneratorMarkup, setupAssetGenerator } from "/frontend/asset-generator.js?v=15";
+import { assetPackMarkup, setupAssetPack } from "/frontend/asset-pack.js?v=7";
+import { tilesetMarkup, setupTileset } from "/frontend/tileset.js?v=7";
+import { animation4Markup, setupAnimation4 } from "/frontend/animation4.js?v=14";
+import { manualEditorMarkup, setupManualEditor } from "/frontend/manual-editor.js?v=23";
+import { spriteTurnaroundMarkup, setupSpriteTurnaround } from "/frontend/sprite-turnaround.js?v=4";
+import { processPixelGrid, quantizePalette } from "/frontend/pixel-grid-core.js?v=2";
 
 const asset = (path) => `/assets/${path}`;
 const readableName = (value) => {

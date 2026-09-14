@@ -15,13 +15,14 @@ SpriteForge is a pixel-art workspace for game creators. It combines AI-assisted 
 
 | Path | Purpose |
 | --- | --- |
-| `index.html`, `app.js`, `styles.css` | Public landing pages, documentation and shared UI. |
-| `app-studio.js`, `app-studio.css` | Authenticated workspace shell and library views. |
-| `character-creator.js`, `asset-generator.js`, `tileset.js`, `animation4.js` | Generator interfaces. |
-| `manual-editor.js`, `pixel-editor/` | Manual pixel-art editor and its local Piskel runtime. |
+| `index.html` | Public entry point and metadata. |
+| `frontend/` | Browser modules and styles for the landing pages, workspace and generators. |
+| `pixel-editor/` | Manual pixel-art editor and its local Piskel runtime. |
 | `generator/src/` | Node.js API, authentication, billing, library and image providers. |
 | `generator/test/` | Backend tests. |
 | `assets/` | Public branding, examples and static resources. |
+| `docs/` | Research notes, backlog and local evaluation fixtures; not part of the browser bundle. |
+| `ops/` | Host-side backup and maintenance helpers. |
 | `Dockerfile`, `docker-compose.yml`, `nginx.conf` | Local container setup and secure frontend/API routing. |
 
 The implementation notes for coding agents live in [`AGENTS.md`](AGENTS.md). They describe module boundaries and invariants without including deployment credentials or private server details.

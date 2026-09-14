@@ -8,7 +8,7 @@ globalThis.ImageData ??= class ImageData {
   }
 };
 
-const { walkPoseGuide } = await import("../../animation-pose-guide.js");
+const { walkPoseGuide } = await import("../../archive/animation-experiments/animation-pose-guide.js");
 
 const source = new ImageData(32, 40);
 for (let y = 3; y < 38; y += 1) for (let x = 8; x < 24; x += 1) source.data.set([80 + x, 120 + y, 70, 255], (y * source.width + x) * 4);

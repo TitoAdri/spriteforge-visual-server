@@ -113,27 +113,26 @@ Para cambios solo de interfaz basta reconstruir `spriteforge-visual`. Si una fun
 | Ruta | Responsabilidad |
 | --- | --- |
 | `index.html` | Documento base, importaciones CSS/JS y parámetros de versión para evitar caché. |
-| `app.js` | Router SPA ligero y landing/marketing, precios, docs, legales, modal de login y funnel de Character Creator. |
-| `site-analytics.js` | Métricas first-party de navegación y embudo; puente opcional a GA4 con consentimiento. |
-| `app-studio.js` | Workspace `/app`: home, biblioteca, proyectos, temas, perfil, ajustes, soporte y visor de assets. |
-| `app-studio.css` | Layout principal del workspace y barra lateral. |
-| `styles.css` | Estilos generales de landing y componentes compartidos. |
-| `cast-iron-theme.css` | Tokens y ajustes globales de la paleta actual (carbón/gris + naranja hierro fundido). Primer sitio a revisar para cambios globales de color. |
-| `responsive.css` | Reglas móviles. Modificar sin alterar el layout de escritorio. |
-| `modal.css`, `app-viewer.css` | Modales y visor emergente de assets/animaciones. |
-| `pricing.css`, `legal.css`, `docs.css` | Estilos de precios, legales y documentación pública. |
-| `cost-display.js`, `cost-display.css` | Presentación consistente de coste de créditos en editores. |
-| `pixel-grid-core.js` | Procesado local de grid, snapping y cuantización; no gasta créditos. |
-| `grid.js`, `grid.css` | Página pública `/pixel-grid-detector`. |
-| `character-creator.js`, `creator*.css` | Creador de personaje y normalización/controles de grid en funnel. |
-| `asset-generator.js`, `asset-generator.css` | Creador de objetos, iconos, props, edificios y escenario. |
-| `manual-editor.js`, `manual-editor.css` | Shell SpriteForge del editor manual: selector/upload, toolbar, historial, guardado y puente seguro con Piskel. |
+| `frontend/app.js` | Router SPA ligero y landing/marketing, precios, docs, legales, modal de login y funnel de Character Creator. |
+| `frontend/site-analytics.js` | Métricas first-party de navegación y embudo; puente opcional a GA4 con consentimiento. |
+| `frontend/app-studio.js` | Workspace `/app`: home, biblioteca, proyectos, temas, perfil, ajustes, soporte y visor de assets. |
+| `frontend/app-studio.css` | Layout principal del workspace y barra lateral. |
+| `frontend/glass-forge-production.css` | Hoja de estilos compilada que se carga en producción. |
+| `frontend/responsive.css` | Reglas móviles históricas; modificar solo si la hoja activa las reutiliza. |
+| `frontend/modal.css`, `frontend/app-viewer.css` | Fuentes de estilos de modales y visor de assets/animaciones. |
+| `frontend/pricing.css`, `frontend/legal.css`, `frontend/docs.css` | Fuentes de estilos de precios, legales y documentación pública. |
+| `frontend/cost-display.js`, `frontend/cost-display.css` | Presentación consistente de coste de créditos en editores. |
+| `frontend/pixel-grid-core.js` | Procesado local de grid, snapping y cuantización; no gasta créditos. |
+| `frontend/grid.css` | Estilos del detector público `/pixel-grid-detector`. |
+| `frontend/character-creator.js`, `frontend/creator*.css` | Creador de personaje y normalización/controles de grid en funnel. |
+| `frontend/asset-generator.js`, `frontend/asset-generator.css` | Creador de objetos, iconos, props, edificios y escenario. |
+| `frontend/manual-editor.js`, `frontend/manual-editor.css` | Shell SpriteForge del editor manual: selector/upload, toolbar, historial, guardado y puente seguro con Piskel. |
 | `pixel-editor/` | Piskel 0.15.2-SNAPSHOT vendorizado (commit `a6b9c02daefceb10093f71e92d52d16920ccb16e`), servido sin CDN. Incluye licencia y avisos de terceros. |
-| `tileset.js`, `tileset.css` | Editor/generador de tilesets. |
-| `asset-pack.js`, `asset-pack.css` | Constructor de packs; beta y visible solo a administradores. |
-| `sprite-turnaround.js` | Generador admin para reconstruir otra orientación de un sprite de biblioteca. |
-| `animation4.js`, `animation4.css` | Flujo público de animación. Los `animation*.js/css` anteriores son experimentos/histórico. |
-| `perspective-assets.js` | Recursos de perspectiva compartidos por creadores. |
+| `frontend/tileset.js`, `frontend/tileset.css` | Editor/generador de tilesets. |
+| `frontend/asset-pack.js`, `frontend/asset-pack.css` | Constructor de packs; beta y visible solo a administradores. |
+| `frontend/sprite-turnaround.js` | Generador admin para reconstruir otra orientación de un sprite de biblioteca. |
+| `frontend/animation4.js`, `frontend/animation4.css` | Flujo público de animación. Las implementaciones anteriores viven en `archive/animation-experiments/` y son solo histórico. |
+| `frontend/perspective-assets.js` | Recursos de perspectiva compartidos por creadores. |
 | `assets/` | Logo, favicon, ejemplos, imágenes de showcase y recursos visuales estáticos. |
 | `robots.txt`, `sitemap.xml` | SEO básico. |
 | `nginx.conf` | Nginx estático, cabeceras de seguridad y proxy `/api/`. |
@@ -161,27 +160,27 @@ Para cambios solo de interfaz basta reconstruir `spriteforge-visual`. Si una fun
 | `test/`, `evals/` | Tests y evaluación/investigación. `evals` no forma parte de una solicitud pública. |
 | `data/` (no versionado) | En producción se monta como `/data`: SQLite y assets privados. |
 
-Los `*_RESEARCH.md`, `*_PLAN.md`, `TO_DO_LIST.md` y `SPRITECOOK_*.md` documentan investigación y backlog. Son útiles como contexto, pero el código actual es la fuente de verdad para proveedores, precios y flujos.
+Los documentos de `docs/research/` y `docs/TO_DO_LIST.md` documentan investigación y backlog. Son útiles como contexto, pero el código actual es la fuente de verdad para proveedores, precios y flujos.
 
 ## Rutas de interfaz y relación con módulos
 
-No hay React/Vue ni build step: Nginx sirve módulos ES directamente. El router público vive en `app.js`.
+No hay React/Vue ni build step: Nginx sirve módulos ES directamente. El router público vive en `frontend/app.js`.
 
 | Ruta | Qué muestra | Código principal |
 | --- | --- | --- |
-| `/` | Landing/marketing, SEO y CTA del primer personaje. | `app.js`, `styles.css`, `landing-overrides.css` |
-| `/app` | Workspace autenticado. | `app-studio.js`, `app-studio.css` |
-| `/app?edit=<assetId>` | Editor manual de un asset privado. | `manual-editor.js`, `pixel-editor/` |
-| `/character-creator` | Funnel fuera de `/app`; acepta el brief de la landing. | `app.js`, `character-creator.js`, `creator*.css` |
-| `/asset-generator` | Generador de assets individuales. | `asset-generator.js` |
-| `/tileset-base-generator` | Generador de tilesets. | `tileset.js` |
-| `/pixel-grid-detector` | Detector/normalizador local de grid. | `grid.js`, `pixel-grid-core.js` |
-| `/pricing` | Planes y costes de `GET /api/billing/catalog`. | `app.js`, `pricing.css` |
-| `/docs` | Documentación de producto. | `app.js`, `docs.css` |
-| `/verify-email`, `/reset-password` | Flujos de cuenta. | `app.js` + API auth |
-| `/terms`, `/privacy`, `/refunds`, `/cookies` | Legales. | `app.js`, `legal.css` |
+| `/` | Landing/marketing, SEO y CTA del primer personaje. | `frontend/app.js`, `frontend/glass-forge-production.css` |
+| `/app` | Workspace autenticado. | `frontend/app-studio.js`, `frontend/app-studio.css` |
+| `/app?edit=<assetId>` | Editor manual de un asset privado. | `frontend/manual-editor.js`, `pixel-editor/` |
+| `/character-creator` | Funnel fuera de `/app`; acepta el brief de la landing. | `frontend/app.js`, `frontend/character-creator.js` |
+| `/asset-generator` | Generador de assets individuales. | `frontend/asset-generator.js` |
+| `/tileset-base-generator` | Generador de tilesets. | `frontend/tileset.js` |
+| `/pixel-grid-detector` | Detector/normalizador local de grid. | `frontend/app.js`, `frontend/pixel-grid-core.js` |
+| `/pricing` | Planes y costes de `GET /api/billing/catalog`. | `frontend/app.js`, `frontend/glass-forge-production.css` |
+| `/docs` | Documentación de producto. | `frontend/app.js`, `frontend/glass-forge-production.css` |
+| `/verify-email`, `/reset-password` | Flujos de cuenta. | `frontend/app.js` + API auth |
+| `/terms`, `/privacy`, `/refunds`, `/cookies` | Legales. | `frontend/app.js`, `frontend/glass-forge-production.css` |
 
-En `/app`, `app-studio.js` monta el shell lateral y cambia vistas internas:
+En `/app`, `frontend/app-studio.js` monta el shell lateral y cambia vistas internas:
 
 - **Home:** compositor rápido; envía el texto a Character, Asset Generator, Tileset o Animation.
 - **My assets:** biblioteca privada.
@@ -201,7 +200,7 @@ En `/app`, `app-studio.js` monta el shell lateral y cambia vistas internas:
 5. Sesión y CSRF van en cookies; operaciones con estado exigen CSRF y mismo origen.
 6. Google OAuth entra por `/api/auth/google` y vuelve por `/api/auth/google/callback`.
 
-Al tocar auth, revisar juntos `auth.mjs`, `email.mjs`, modales de `app.js` y estado de cuenta de `app-studio.js`. Nunca relajar una validación solo en frontend.
+Al tocar auth, revisar juntos `auth.mjs`, `email.mjs`, modales de `frontend/app.js` y estado de cuenta de `frontend/app-studio.js`. Nunca relajar una validación solo en frontend.
 
 ### Generación de un asset
 
@@ -234,11 +233,11 @@ Las referencias son assets del propio usuario y se añaden mediante `/api/themes
 - Binarios privados: `/api/assets/:id/files/{original|game-ready|thumbnail|animation}` tras verificar propiedad.
 - Exportación de animaciones: `/api/assets/:id/export/gif` y `/api/assets/:id/export/spritesheet`.
 
-La interfaz pública de animación es `animation4.js`. Las demás implementaciones de animación deben tratarse como experimentales hasta revisar proveedor, cobro y UI.
+La interfaz pública de animación es `frontend/animation4.js`. Las implementaciones archivadas en `archive/animation-experiments/` no forman parte del runtime y deben tratarse como histórico.
 
 ### Editor manual de pixel art
 
-`pixel-editor/` contiene una compilación local de [Piskel](https://github.com/piskelapp/piskel), distribuida bajo Apache 2.0. `manual-editor.js` la monta en un `iframe` del mismo origen y solo acepta mensajes cuyo origen y `contentWindow` coinciden. Piskel conserva capas, frames y paletas en su documento serializado; el backend guarda además PNG game-ready y GIF cuando hay más de un frame.
+`pixel-editor/` contiene una compilación local de [Piskel](https://github.com/piskelapp/piskel), distribuida bajo Apache 2.0. `frontend/manual-editor.js` la monta en un `iframe` del mismo origen y solo acepta mensajes cuyo origen y `contentWindow` coinciden. Piskel conserva capas, frames y paletas en su documento serializado; el backend guarda además PNG game-ready y GIF cuando hay más de un frame.
 
 - Lectura: `GET /api/assets/:id/editor` y `GET /api/assets/:id/editor/revisions/:revisionId`.
 - Guardado: `POST /api/assets/:id/editor/revisions`; conserva las últimas 20 revisiones.
@@ -339,10 +338,10 @@ También hay límites de generación en `server.mjs`: `SPRITEFORGE_GENERATION_RA
 
 ### Cambio visual
 
-1. Identificar ruta y módulo: `app.js` para pública, `app-studio.js` para `/app`, o editor concreto.
-2. Empezar por CSS específico; revisar `cast-iron-theme.css` si es un token global; `responsive.css` solo para móvil.
+1. Identificar ruta y módulo: `frontend/app.js` para pública, `frontend/app-studio.js` para `/app`, o editor concreto.
+2. Empezar por CSS específico; revisar `frontend/glass-forge-production.css` si es un token global; `frontend/glass-forge-production.css` solo para móvil.
 3. Mantener desktop y móvil separados.
-4. Si la caché impide validar un JS/CSS actualizado, cambiar el `?v=` correspondiente en `index.html` o importación de `app.js`.
+4. Si la caché impide validar un JS/CSS actualizado, cambiar el `?v=` correspondiente en `index.html` o importación de `frontend/app.js`.
 
 ### Cambio en generación
 
@@ -352,7 +351,7 @@ También hay límites de generación en `server.mjs`: `SPRITEFORGE_GENERATION_RA
 4. Mantener devolución ante fallo e idempotencia.
 5. Confirmar que resultado queda persistido con propietario correcto por `library.mjs`.
 
-Para herramientas basadas en una imagen privada existente, enviar al backend el identificador del asset en vez de confiar en bytes aportados por el navegador. El servidor debe verificar rol y propiedad, resolver la variante `game-ready` u original, usarla como ancla y guardar el resultado con relación al asset padre. Una herramienta admin debe ocultarse en `app-studio.js`, pero además exigir el rol en la API.
+Para herramientas basadas en una imagen privada existente, enviar al backend el identificador del asset en vez de confiar en bytes aportados por el navegador. El servidor debe verificar rol y propiedad, resolver la variante `game-ready` u original, usarla como ancla y guardar el resultado con relación al asset padre. Una herramienta admin debe ocultarse en `frontend/app-studio.js`, pero además exigir el rol en la API.
 
 ### Cambio en cuentas/pagos
 
@@ -390,10 +389,10 @@ Para herramientas basadas en una imagen privada existente, enviar al backend el 
 
 1. Este `AGENTS.md`.
 2. `docker-compose.yml` y `nginx.conf`.
-3. `app.js` y `app-studio.js`.
+3. `frontend/app.js` y `frontend/app-studio.js`.
 4. Editor específico de la tarea.
 5. `generator/src/server.mjs`.
 6. `auth.mjs`, `library.mjs` y `billing-catalog.mjs` antes de tocar usuarios, datos o créditos.
-7. CSS específico y `responsive.css` si afecta a móvil.
+7. CSS específico y `frontend/glass-forge-production.css` si afecta a móvil.
 
 Con ese recorrido se localiza casi cualquier funcionalidad sin depender del historial del proyecto.

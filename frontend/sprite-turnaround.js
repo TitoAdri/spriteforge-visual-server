@@ -1,6 +1,6 @@
-import { processPixelGrid } from "/pixel-grid-core.js?v=2";
-import { cropForeground, forceGrid } from "/character-creator.js?v=35";
-import { clearCreditUpgrade, showCreditUpgrade } from "/credit-alert.js?v=2";
+import { processPixelGrid } from "/frontend/pixel-grid-core.js?v=2";
+import { cropForeground, forceGrid } from "/frontend/character-creator.js?v=35";
+import { clearCreditUpgrade, showCreditUpgrade } from "/frontend/credit-alert.js?v=2";
 
 const ISO_8 = ["up", "up-right", "right", "down-right", "down", "down-left", "left", "up-left"];
 const ISO_4 = ["up-right", "down-right", "down-left", "up-left"];

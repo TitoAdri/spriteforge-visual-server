@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { alphaBounds, applyRigPose, autoRig, deformSprite, motionRigs, MOTION2, RIG_JOINTS, RIG_PARENTS } from "../../animation2-core.js";
+import { alphaBounds, applyRigPose, autoRig, deformSprite, motionRigs, MOTION2, RIG_JOINTS, RIG_PARENTS } from "../../archive/animation-experiments/animation2-core.js";
 
 const image = { width: 16, height: 16, data: new Uint8ClampedArray(16 * 16 * 4) };
 for (let y = 2; y < 15; y += 1) for (let x = 4; x < 12; x += 1) image.data.set([20, 80, 160, 255], (y * 16 + x) * 4);

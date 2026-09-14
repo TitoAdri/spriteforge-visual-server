@@ -1,9 +1,9 @@
-import { processPixelGrid, quantizePalette, snapToGrid } from "/pixel-grid-core.js";
-import { characterCreatorMarkup, setupCharacterCreator } from "/character-creator.js?v=35";
-import { assetGeneratorMarkup, setupAssetGenerator } from "/asset-generator.js?v=14";
-import { appStudioMarkup, setupAppStudio } from "/app-studio.js?v=126";
-import "/cost-display.js?v=7";
-import "/perspective-assets.js?v=1";
+import { processPixelGrid, quantizePalette, snapToGrid } from "/frontend/pixel-grid-core.js";
+import { characterCreatorMarkup, setupCharacterCreator } from "/frontend/character-creator.js?v=35";
+import { assetGeneratorMarkup, setupAssetGenerator } from "/frontend/asset-generator.js?v=14";
+import { appStudioMarkup, setupAppStudio } from "/frontend/app-studio.js?v=126";
+import "/frontend/cost-display.js?v=7";
+import "/frontend/perspective-assets.js?v=1";
 
 const asset = (path) => `/assets/${path}`;
 
