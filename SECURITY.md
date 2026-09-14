@@ -8,7 +8,7 @@ archive branches are not production deployment targets.
 ## Reporting a vulnerability
 
 Please do not open a public issue with credentials, personal data or exploit
-details. Contact the maintainer privately at `security@spriteforge.xyz` with:
+details. Contact the maintainer privately at `support@spriteforge.xyz` with:
 
 - a short description and affected component;
 - reproducible steps or a minimal proof of concept;
