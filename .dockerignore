@@ -3,6 +3,9 @@
 .github
 AGENTS.md
 README.md
+docs
+archive
+frontend/README.md
 generator
 ops
 node_modules

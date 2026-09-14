@@ -1,5 +1,5 @@
-import { processPixelGrid, quantizePalette, snapToGrid } from "/pixel-grid-core.js";
-import { clearCreditUpgrade, showCreditUpgrade } from "/credit-alert.js?v=2";
+import { processPixelGrid, quantizePalette, snapToGrid } from "/frontend/pixel-grid-core.js";
+import { clearCreditUpgrade, showCreditUpgrade } from "/frontend/credit-alert.js?v=2";
 
 const GRID_SIZES = [8, 16, 24, 32, 48, 64, 128, 256];
 const PALETTE_SIZES = [8, 16, 24, 32, 48, 64, 128, 256];

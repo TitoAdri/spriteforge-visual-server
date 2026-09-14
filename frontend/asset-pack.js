@@ -1,6 +1,6 @@
-import { processPixelGrid } from "/pixel-grid-core.js";
-import { cropForeground, forceGrid, removeChromaBleed, removeChromaKey } from "/character-creator.js?v=18";
-import { clearCreditUpgrade, showCreditUpgrade } from "/credit-alert.js?v=2";
+import { processPixelGrid } from "/frontend/pixel-grid-core.js";
+import { cropForeground, forceGrid, removeChromaBleed, removeChromaKey } from "/frontend/character-creator.js?v=18";
+import { clearCreditUpgrade, showCreditUpgrade } from "/frontend/credit-alert.js?v=2";
 
 const TYPES = {
   inventory: { label: "Inventory set", description: "Collectibles, consumables and loot", items: [["item", "A brass compass with a cyan needle"], ["item", "A small emerald healing potion"], ["weapon", "A weathered iron short sword"]] },
