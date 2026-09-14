@@ -6,6 +6,7 @@ generator/data/
 
 # Generated evaluation output and local dependencies
 generator/evals/results/
+generator/_tmp_*
 node_modules/
 
 # Local/editor noise

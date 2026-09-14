@@ -1,7 +1,7 @@
 #!/bin/sh
 set -eu
 
-app_dir="/srv/spriteforge"
+app_dir="${SPRITEFORGE_APP_DIR:-/srv/spriteforge}"
 env_file="$app_dir/generator/.env"
 
 mkdir -p "$app_dir/generator/data"
