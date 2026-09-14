@@ -38,7 +38,7 @@ La carpeta local del proyecto es la fuente de código. Los secretos, datos de us
 Para trabajar desde otra máquina con acceso al repositorio:
 
 ```powershell
-git clone https://github.com/TitoAdri/spriteforge-visual-server.git
+git clone https://github.com/adrianmartosm/spriteforge-visual-server.git
 cd spriteforge-visual-server
 Copy-Item generator/.env.example generator/.env
 # Completar generator/.env con las claves reales del entorno

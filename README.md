@@ -1,6 +1,6 @@
 # SpriteForge
 
-[![CI](https://github.com/TitoAdri/spriteforge-visual-server/actions/workflows/ci.yml/badge.svg)](https://github.com/TitoAdri/spriteforge-visual-server/actions/workflows/ci.yml)
+[![CI](https://github.com/adrianmartosm/spriteforge-visual-server/actions/workflows/ci.yml/badge.svg)](https://github.com/adrianmartosm/spriteforge-visual-server/actions/workflows/ci.yml)
 
 SpriteForge is a pixel-art workspace for game creators. It combines AI-assisted asset generation with a browser-based editor so characters, props, tilesets and animations can be created, refined and exported from one place.
 
