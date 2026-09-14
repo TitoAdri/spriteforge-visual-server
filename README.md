@@ -1,6 +1,23 @@
 # SpriteForge
 
+[![CI](https://github.com/TitoAdri/spriteforge-visual-server/actions/workflows/ci.yml/badge.svg)](https://github.com/TitoAdri/spriteforge-visual-server/actions/workflows/ci.yml)
+
 SpriteForge is a pixel-art workspace for game creators. It combines AI-assisted asset generation with a browser-based editor so characters, props, tilesets and animations can be created, refined and exported from one place.
+
+## Product tour
+
+The public product keeps the workflow focused: describe an idea, choose the
+right art tool, then refine and ship the result from one private workspace.
+
+![SpriteForge landing page](docs/screenshots/landing.png)
+
+![SpriteForge pricing](docs/screenshots/pricing.png)
+
+![SpriteForge documentation](docs/screenshots/docs.png)
+
+These screenshots are captured from the public site and are included as a
+visual overview for reviewers. The application continues to evolve separately
+from this portfolio repository.
 
 ## Highlights
 
@@ -21,7 +38,7 @@ SpriteForge is a pixel-art workspace for game creators. It combines AI-assisted 
 | `generator/src/` | Node.js API, authentication, billing, library and image providers. |
 | `generator/test/` | Backend tests. |
 | `assets/` | Public branding, examples and static resources. |
-| `docs/` | Research notes, backlog and local evaluation fixtures; not part of the browser bundle. |
+| `docs/` | Screenshots, research notes, backlog and local evaluation fixtures; not part of the browser bundle. |
 | `ops/` | Host-side backup and maintenance helpers. |
 | `Dockerfile`, `docker-compose.yml`, `nginx.conf` | Local container setup and secure frontend/API routing. |
 
@@ -49,6 +66,10 @@ curl http://localhost:3002/health
 docker compose ps
 ```
 
+The API port is intentionally internal to the Compose network. Run the health
+check from the API container or publish the port explicitly for local-only
+debugging; do not expose it on an internet-facing host.
+
 ### Tests
 
 ```powershell
@@ -71,4 +92,6 @@ SpriteForge is a portfolio and product prototype. Provider integrations, billing
 
 ## License
 
-The repository does not currently declare a single project-wide open-source license. Unless a file states otherwise, ask the project owner before redistributing code or included artwork. The vendored Piskel editor retains its own Apache 2.0 license and notices.
+Original SpriteForge source code is released under the [MIT License](LICENSE).
+Artwork, generated examples and vendored components may have separate terms;
+see their accompanying notices, including `pixel-editor/LICENSE`.
